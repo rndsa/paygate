@@ -1,162 +1,66 @@
-# ⚡ PAYGATE
+# paygate
 
-<div align="center">
+Self-hosted payment gateway for personal use. It generates dynamic QRIS codes, takes payments through ShopeePay and GoPay, and keeps all transaction data on your own server.
 
-<!-- Animated banner (capsule-render) -->
-![PayGate Banner](https://capsule-render.vercel.app/api?type=waving&color=0:1a1a2e,50:16213e,100:0f3460&height=180&section=header&text=PAYGATE&fontSize=60&fontColor=e94560&animation=fadeIn&desc=Self-hosted%20QRIS%20Payment%20Gateway&descSize=18&descAlignY=65)
+Status: **unfinished**. The ShopeePay path works end to end in my testing. The GoPay path logs in, but payment polling is unreliable. Read the code before pointing real money at it.
 
-![Status](https://img.shields.io/badge/status-UNFINISHED%20🚧-orange?style=for-the-badge&logo=construction)
-![Language](https://img.shields.io/badge/node.js-18%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge&logo=open_source_initiative)
-![PRs](https://img.shields.io/badge/PRs-welcome-ff69b4?style=for-the-badge&logo=github)
+## What it does
 
-*🎓 Self-hosted personal payment gateway — QRIS via ShopeePay / GoPay, hardened auth & API keys.*
+- Dynamic QRIS: the amount is baked into each code, so a payment can only match its order
+- Web dashboard (EJS): password + TOTP login, order list, income view
+- API keys (`sk-...`) so other programs can create orders and check status
+- A poller that watches for incoming payments and flips orders to paid
+- Income tracking, automatic amount allocation, tax math
+- Shopee login automation through a headless browser helper (`src/services/shopee_browser.py`)
+- Rate limiting, security headers, and audit logging on the console endpoints
 
-</div>
+## What it doesn't do yet
 
----
+- GoPay payments are not reliable end to end
+- No webhooks. Your integrations have to poll.
+- No Docker setup
+- API docs are thin. `docs/` has research notes, not reference material.
 
-## 🚧 STATUS: UNFINISHED / WORK IN PROGRESS
+## Running it
 
-> [!WARNING]
-> **Project ini BELUM SELESAI.** Repo ini adalah *source code kosongan* — semua data runtime, kredensial, database, dan config pribadi **sengaja TIDAK disertakan**.
->
-> - ❌ Belum semua fitur stabil
-> - ❌ Belum ada panduan produksi lengkap
-> - ✅ Struktur kode, API, dan UI dasar sudah ada
-
----
-
-## 🤔 Apa Ini?
-
-**PayGate** adalah gateway pembayaran personal yang self-hosted:
-
-| Fitur | Keterangan |
-|---|---|
-| 📱 **QRIS Dinamis** | Generate QRIS per-transaksi via ShopeePay / GoPay |
-| 🔐 **Auth Hardened** | Password + TOTP 2FA + rate limiting + session hardened |
-| 🗝️ **API Keys** | Key `sk-...` per-client untuk integrasi programatik |
-| 📊 **Dashboard Web** | UI EJS (login, OTP, orders, income, pengaturan) |
-| 💰 **Tracking Income** | Rekap dana masuk + alokasi amount otomatis |
-| 🛡️ **Security Middleware** | Security headers, rate limit, audit console |
-
-### 🎯 Kenapa self-hosted?
-
-- 🏠 **Data milik lu** — gak ada pihak ketiga pegang data transaksi
-- 🔓 **MIT License** — bebas modifikasi
-- 🧩 **Modular** — provider baru gampang ditambahin
-
----
-
-## 🛠️ Cara Jalanin
-
-### 📋 Prasyarat
-
-- Node.js **18+**
-- (Opsional) Python 3 untuk helper browser-automation Shopee
-- (Opsional) Caddy/Nginx untuk reverse proxy + TLS
-
-### ⚡ Quick Start
+Node 18 or newer. A couple of test suites hit the real network, so don't be surprised by slow `npm test` runs.
 
 ```bash
-# 1️⃣ Clone
 git clone https://github.com/rndsa/paygate.git
 cd paygate
-
-# 2️⃣ Install deps
 npm install
-
-# 3️⃣ Setup config — salin contoh, ISI SENDIRI nilainya
-cp .env.example .env
-
-# 4️⃣ Setup awal (bikin admin & database)
-npm run setup
-
-# 5️⃣ Jalanin!
-npm start          # atau: npm run dev (hot reload)
+cp .env.example .env   # fill it in yourself, see below
+npm run setup          # creates the database and the admin account
+npm start              # listens on localhost:3000
 ```
 
-Server default listen di **`http://localhost:3000`** 🎉
+`npm run dev` restarts on file changes.
 
-### ⚙️ Config (`.env`)
+### Config
 
-> [!IMPORTANT]
-> `.env` **tidak ikut di-commit** (lihat `.gitignore`). Isi sendiri sesuai `.env.example`:
+Copy `.env.example` to `.env`. Minimum:
 
-```env
-PORT=3000
-SESSION_SECRET=<random-long-string>
-ADMIN_PASSWORD=<password-lu>
-# ... sisanya lihat .env.example
-```
+- `COOKIE_SECRET` - generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+- `ADMIN_PASSWORD`
 
-### 🧪 Test
+The other variables are documented inline in the example file.
 
-```bash
-npm test
-```
+### How the Shopee flow works
 
----
+`src/services/shopee.js` drives your own Shopee account: it logs in through the Python helper, watches for incoming payment notifications, and matches them against open orders. Nothing here talks to a bank or PSP API. It is polling and parsing, all local.
 
-## 🗺️ Roadmap
-
-- [x] Struktur dasar + auth (password, TOTP)
-- [x] Generate QRIS dinamis
-- [x] Dashboard UI dasar
-- [x] API key management
-- [x] Income tracking + alokasi amount
-- [x] ShopeePay flow (browser automation)
-- [ ] 🚧 GoPay flow stabil
-- [ ] 🚧 Webhook/callback untuk notifikasi pembayaran
-- [ ] 🚧 Multi-provider interface
-- [ ] 🚧 Docker support
-- [ ] 🚧 Dokumentasi API lengkap
-
----
-
-## 🗂️ Struktur Project
+## Layout
 
 ```
-paygate/
-├── 📂 src/
-│   ├── 📄 server.js          # Entry point
-│   ├── 📂 routes/            # HTTP routes (auth, orders, qris, ...)
-│   ├── 📂 services/          # Provider logic (shopee, gopay, poller)
-│   ├── 📂 lib/               # Util (qris, crypto, totp, tax, ...)
-│   ├── 📂 middleware/        # Security, rate limit, audit
-│   └── 📂 db/                # Database layer
-├── 📂 views/                 # EJS templates (UI)
-├── 📂 public/                # Static assets (CSS/JS)
-├── 📂 tests/                 # Test suites
-├── 📂 docs/                  # Dokumentasi riset & design
-├── 📂 deploy/                # systemd, helper deploy
-└── 📄 .env.example           # Contoh config
+src/routes      HTTP handlers
+src/services    provider logic (shopee, gopay, poller)
+src/lib         qris, crypto, totp, tax, allocation
+src/middleware  security headers, rate limit, console audit
+views           EJS templates
+tests           one file per feature, run with npm test
+docs            research notes from building this
 ```
 
----
+## License
 
-## 🔐 Keamanan
-
-> [!CAUTION]
-> Jangan pernah commit `.env`, database, atau kredensial apapun ke repo publik!
-
-- 🔑 Password admin di-hashed (bcrypt)
-- ⏱️ TOTP 2FA untuk akses sensitif
-- 🚦 Rate limiting di semua endpoint auth
-- 🧹 Audit logging untuk console admin
-
----
-
-## 📜 License
-
-MIT — lihat [LICENSE](LICENSE).
-
----
-
-<div align="center">
-
-![Footer](https://capsule-render.vercel.app/api?type=waving&color=0:0f3460,50:16213e,100:1a1a2e&height=120&section=footer&text=still%20under%20construction%20🚧&fontSize=20&fontColor=e94560)
-
-*⭐ Star repo ini kalau mau follow progresnya!*
-
-</div>
+MIT. See [LICENSE](LICENSE).
