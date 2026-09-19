@@ -1,0 +1,30 @@
+  <header class="auth-toolbar"<% if (loginInert) { %> inert aria-hidden="true"<% } %>><a href="/terms/details">Syarat Penggunaan</a><button class="btn btn-ghost btn-sm" data-action="toggle-theme" aria-pressed="false" aria-label="Ganti tema terang/gelap">Tema</button></header>
+  <div class="auth-wrap"<% if (loginInert) { %> inert aria-hidden="true"<% } %>>
+    <section class="auth-side" aria-labelledby="authIntroTitle">
+      <div class="inner">
+        <div class="auth-logo-row"><div class="brand-logo" aria-hidden="true">P</div><span class="brand-name">PayGate</span></div>
+        <p class="auth-kicker">Dashboard merchant self-hosted</p>
+        <div class="page-heading"><h1 id="authIntroTitle">Satu ruang untuk setiap pembayaran.</h1></div>
+        <p>Pantau order, hubungkan akun merchant, dan kelola integrasi pembayaran dari satu dashboard.</p>
+        <p class="auth-note">Penerimaan order tersedia setelah koneksi akun berhasil diperiksa.</p>
+      </div>
+    </section>
+    <main class="auth-form-side">
+      <div class="auth-card">
+        <div class="auth-logo-row"><div class="brand-logo" aria-hidden="true">P</div><div><div class="brand-name">PayGate</div><div class="auth-note">Akses dashboard</div></div></div>
+        <p class="auth-kicker">Akun administrator</p>
+        <h2>Masuk</h2>
+        <p class="sub">Gunakan kredensial PayGate untuk melanjutkan.</p>
+        <% if (error) { %>
+          <div class="alert alert-error"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span><%= error %></span></div>
+        <% } %>
+        <form method="POST" action="/login<%= next && next !== '/' ? '?next=' + encodeURIComponent(next) : '' %>" autocomplete="off">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field"><label for="username">Username</label><input class="input" type="text" id="username" name="username" placeholder="admin" required<% if (!loginInert) { %> autofocus<% } %> autocomplete="username" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.\-]+"></div>
+          <div class="field"><label for="password">Password</label><input class="input" type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password" minlength="8" maxlength="128"></div>
+          <button class="btn btn-primary btn-lg btn-block" type="submit">Masuk</button>
+        </form>
+        <p class="small muted text-center mt-16">© <%= new Date().getFullYear() %> PayGate — self-hosted payment gateway</p>
+      </div>
+    </main>
+  </div>

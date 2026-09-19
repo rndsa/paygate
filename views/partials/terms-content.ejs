@@ -1,0 +1,51 @@
+<section aria-labelledby="termsSummaryTitle">
+  <h2 id="termsSummaryTitle">Sebelum deploy PayGate</h2>
+  <details class="terms-faq-overview">
+    <summary>Apa yang perlu dipahami sebelum deploy?</summary>
+    <div class="terms-answer">
+  <p>Kamu menjalankan source code PayGate di server sendiri dan mengelola instalasinya. Pembuat hanya menyediakan source code, bukan operator instalasi Kamu atau penyimpan dana merchant. Kode sumber PayGate berlisensi <a href="/license">MIT</a> (open source) dan dapat Kamu periksa dan audit sebelum deploy. Dependensi pihak ketiga tetap mengikuti lisensinya masing-masing. Keterbukaan kode bukan sertifikasi atau bukti audit keamanan. Ketentuan ini menjelaskan tanggung jawab tersebut, bukan lisensi dari provider atau kekebalan hukum. Penjelasan ini tidak memberi izin baru dan tidak mengubah kewajiban yang sudah berlaku.</p>
+  <ul class="terms-summary">
+    <li>PayGate bukan layanan atau mitra resmi GoPay/ShopeePay. Akses API privat dan otomasi tanpa izin yang diwajibkan provider <strong>melanggar ToS provider</strong>. Persetujuan di sini tidak menggantikan izin provider.</li>
+    <li>Kamu menanggung risiko akun diblokir/suspend, sesi diputus, dana ditahan, permintaan ditolak, perubahan API, dan kesalahan pencocokan. Gunakan hanya sesi merchant milik sendiri atau yang sah dikuasakan.</li>
+    <li>Kamu wajib memeriksa ID merchant, toko, dan QRIS, serta melakukan verifikasi manual pembayaran dan settlement melalui kanal resmi. QRIS memindahkan uang sungguhan; status “Cocok nominal” bukan bukti identitas pembayar atau dana selesai diterima. Kedaluwarsa di PayGate tidak mencabut QR di provider.</li>
+  </ul>
+    </div>
+  </details>
+</section>
+<section aria-labelledby="termsDetailsTitle">
+  <h2 id="termsDetailsTitle">Ketentuan dan tanggung jawab</h2>
+  <div class="terms-faq">
+    <details class="terms-faq-item">
+      <summary>Apa batas penggunaan ShopeePay?</summary>
+      <div class="terms-answer"><p>§5 melarang pemantauan/penyalinan konten memakai robot atau proses otomatis/manual tanpa persetujuan tertulis sebelumnya. §12.2(n) melarang reverse engineering dan pengelakan keamanan. §7.3 mengatur kerahasiaan kredensial dan tanggung jawab akun. <a href="https://help.shopee.co.id/portal/4/article/185486-Persyaratan-Layanan-Bagi-Merchant" target="_blank" rel="noopener noreferrer">Persyaratan merchant ShopeePay</a>.</p></div>
+    </details>
+    <details class="terms-faq-item">
+      <summary>Apa batas penggunaan GoPay/GoBiz?</summary>
+      <div class="terms-answer"><p>Ketentuan merchant membatasi pengalihan akun serta melarang reverse engineering/scraping. Koneksi privat PayGate tidak disertifikasi provider. <a href="https://gopay.co.id/terms-and-condition/qris-gopay-merchant" target="_blank" rel="noopener noreferrer">Syarat GoPay Merchant</a>. Persetujuan Kamu tidak menggantikan izin yang diperlukan.</p></div>
+    </details>
+    <details class="terms-faq-item">
+      <summary>Siapa mengelola infrastruktur instalasi?</summary>
+      <div class="terms-answer"><p>Kamu bertanggung jawab atas server, domain, TLS/HTTPS yang valid, pembaruan keamanan, dan pembatasan akses admin. Lindungi kunci enkripsi, rahasia konfigurasi, database, dan backup; pastikan cadangan dapat dipulihkan tanpa membuka kredensial kepada pihak yang tidak berwenang.</p></div>
+    </details>
+    <details class="terms-faq-item">
+      <summary>Bagaimana sesi dan privasi dilindungi?</summary>
+      <div class="terms-answer"><p>Gunakan hanya akun merchant milik sendiri atau yang sah dikuasakan pada dashboard HTTPS instalasi yang Kamu kendalikan. Password Shopee dan OTP diproses sementara di server untuk login melalui browser terisolasi; tidak disimpan dalam log, database, atau browser storage. Token hasil login tersimpan terenkripsi di server; pihak yang menguasai server/kunci tetap dapat mengaksesnya. Password PayGate dipakai untuk autentikasi ulang, terpisah dari password merchant dan tidak disimpan sebagai bagian kredensial merchant.</p></div>
+    </details>
+    <details class="terms-faq-item">
+      <summary>Apa batas koneksi merchant?</summary>
+      <div class="terms-answer"><p>ShopeePay memakai login password melalui portal resmi dalam browser server baru, dengan OTP jika tahap yang didukung diminta provider. Ini bukan integrasi resmi atau jaminan login berhasil. CAPTCHA, persetujuan perangkat, atau hasil merchant/toko yang tidak dapat diverifikasi menghentikan proses; tidak ada bypass atau kirim OTP ulang otomatis. Penyimpanan tidak membuktikan koneksi; pengecekan provider wajib sebelum aktif, hasil gagal berhenti. Dengan memilih “Simpan &amp; aktifkan”, Kamu meminta penyimpanan lalu pengecekan otomatis melalui permintaan API terpisah. Batas sesi maksimal 12 jam adalah batas lokal PayGate, tidak memperpanjang masa berlaku provider. Hasil pengecekan tidak menjamin koneksi berikutnya atau keberhasilan transaksi.</p></div>
+    </details>
+    <details class="terms-faq-item">
+      <summary>Siapa bertanggung jawab atas pembayaran?</summary>
+      <div class="terms-answer"><p>Kamu bertanggung jawab atas nominal, pemetaan merchant/toko/QRIS, rekonsiliasi, pajak, pemenuhan pesanan, serta refund. Nominal maksimal Rp 100.000 dan tidak dapat dipakai ulang sepanjang riwayat provider. Transfer lain bernominal sama bisa cocok. Hasil tes lokal atau CRC QRIS bukan bukti pembayaran, settlement, atau izin acquirer.</p></div>
+    </details>
+    <details class="terms-faq-item">
+      <summary>Apa batas tanggung jawab pembuat?</summary>
+      <div class="terms-answer"><p>Pembuat hanya menyediakan source code ini. Source code disediakan apa adanya (AS IS), tanpa jaminan keamanan, ketersediaan, akun bebas pembatasan, transaksi selesai, atau bebas kerugian. PayGate tidak menjamin hasil penggunaan maupun perubahan kode. Sejauh diizinkan hukum yang berlaku, pembuat tidak bertanggung jawab atas klaim, kerusakan, kehilangan data/dana, atau kerugian akibat penggunaan maupun perubahan source code. Kamu bertanggung jawab atas keamanan dan penggunaan instalasi serta risiko kerugian sejauh diizinkan hukum yang berlaku. Ketentuan ini tidak menghapus kewajiban hukum yang tidak dapat dikesampingkan, hak konsumen, maupun tanggung jawab atas kesengajaan atau kelalaian berat pengembang atau pengelola.</p></div>
+    </details>
+    <details class="terms-faq-item">
+      <summary>Bagaimana persetujuan disimpan?</summary>
+      <div class="terms-answer"><p>Persetujuan versi 8 September 2026 disimpan melalui cookie di browser ini selama 180 hari. Ringkasan muncul lagi jika cookie hilang/kedaluwarsa atau versi ketentuan berubah. Cookie ini bukan bukti kepemilikan merchant atau pengganti login. Detail selalu tersedia di tab Syarat Penggunaan.</p></div>
+    </details>
+  </div>
+</section>

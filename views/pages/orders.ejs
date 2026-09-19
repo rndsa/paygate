@@ -1,0 +1,92 @@
+<% const labOwner = config.labUnofficialEnabled && user.id === config.labUserId; %>
+<div class="fade-up">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Pembayaran</p>
+      <h1>Tagihan</h1>
+      <p class="page-description">Buat tagihan QRIS dan pantau statusnya di sini. Tagihan hanya bisa dibuat kalau akun pembayaran sudah terhubung dan aktif. <a href="/accounts">Kelola akun</a></p>
+    </div>
+    <button class="btn btn-primary" data-action="open-create" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Buat Tagihan Baru
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>ID Tagihan</th><th>Metode</th><th>Nominal</th><th>Status</th><th>Dibuat</th><th>Aksi</th></tr></thead>
+        <tbody id="orderRows"><tr><td colspan="6" class="text-center muted">Memuat...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Create Order Modal -->
+<dialog class="modal" id="createModal" aria-labelledby="createModalTitle">
+    <div class="modal-header">
+      <h3 id="createModalTitle">Buat Tagihan Baru</h3>
+      <button class="modal-close" aria-label="Tutup dialog" type="button" data-action="close-modal" data-modal="createModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="oAmount">Nominal</label>
+        <div class="input-group">
+          <span class="input-prefix">Rp</span>
+          <input class="input" type="text" id="oAmount" min="1" max="100000" step="1" required autofocus placeholder="25.000" inputmode="numeric" data-format="digits">
+        </div>
+      </div>
+      <div class="field">
+        <label for="oDesc">Keterangan <span class="muted small">(opsional)</span></label>
+        <input class="input" type="text" id="oDesc" maxlength="200" placeholder="Tagihan #123 — Paket Bot Premium">
+      </div>
+      <div class="field">
+        <label for="oProvider">Metode pembayaran</label>
+        <div class="provider-radios" role="radiogroup" aria-label="Metode pembayaran">
+          <div class="provider-radio active" role="radio" aria-checked="true" tabindex="0" data-provider="gopay" data-action="create-provider">
+            <span class="provider-radio-icon">GP</span>
+            <div class="provider-radio-text">
+              <span class="provider-radio-label">GoPay</span>
+              <span class="provider-radio-hint">Pembayaran QRIS</span>
+            </div>
+          </div>
+          <div class="provider-radio" role="radio" aria-checked="false" tabindex="0" data-provider="shopeepay" data-action="create-provider">
+            <span class="provider-radio-icon">SP</span>
+            <div class="provider-radio-text">
+              <span class="provider-radio-label">ShopeePay</span>
+              <span class="provider-radio-hint">Pembayaran QRIS</span>
+            </div>
+          </div>
+        </div>
+        <!-- Hidden select kept for JS compat / test getElementById -->
+        <select class="hidden" id="oProvider" data-lab-eligible="<%= labOwner %>" aria-describedby="providerHint" tabindex="-1" aria-hidden="true">
+          <option value="" disabled selected>Pilih metode pembayaran</option>
+          <option value="gopay"><%= labOwner ? 'GoPay' : 'GoPay (belum aktif)' %></option>
+          <option value="shopeepay"><%= labOwner ? 'ShopeePay' : 'ShopeePay (belum aktif)' %></option>
+        </select>
+        <div class="hint" id="providerHint">Sedang memeriksa akun aktif...</div>
+      </div>
+      <div class="lab-consent mt-8"><input type="checkbox" id="labConsent"><label for="labConsent">Nominal sudah benar. Saya akan mengecek pembayaran di aplikasi pembayaran saya.</label></div>
+      <div id="createError" class="alert alert-error hidden" role="alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="close-modal" data-modal="createModal">Batal</button>
+      <button class="btn btn-primary" id="btnCreate" data-action="create-order" disabled>Buat QRIS</button>
+    </div>
+</dialog>
+
+<!-- Order Detail / QR Modal -->
+<dialog class="modal" id="detailModal" aria-labelledby="detailModalTitle">
+    <div class="modal-header">
+      <h3 id="detailModalTitle">Detail Tagihan</h3>
+      <button class="modal-close" aria-label="Tutup dialog" type="button" data-action="close-modal" data-modal="detailModal">&times;</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-action="refresh-order">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Perbarui Status
+      </button>
+      <button class="btn btn-ghost" data-action="close-modal" data-modal="detailModal">Tutup</button>
+    </div>
+</dialog>

@@ -1,0 +1,47 @@
+<section id="consolePage" class="console-page" aria-labelledby="consoleTitle">
+  <header class="console-header">
+    <div class="console-heading">
+      <p class="console-eyebrow">Developer</p>
+      <h1 id="consoleTitle" class="console-title">Console Log</h1>
+      <p class="console-description">Jejak aktivitas aplikasi untuk pemeriksaan teknis. Hanya dapat dilihat.</p>
+    </div>
+    <button id="consoleRefresh" class="console-button console-button-secondary" type="button">Muat ulang</button>
+  </header>
+  <p id="consoleRetention" class="console-retention">Disimpan hingga 30 hari atau 10.000 aktivitas terbaru secara keseluruhan. Catatan dimulai sejak fitur diaktifkan; tidak ada riwayat sebelum itu.</p>
+
+  <section id="consoleResults" class="console-results" aria-labelledby="consoleResultsTitle" aria-busy="true">
+    <div class="console-results-header">
+      <h2 id="consoleResultsTitle" class="console-section-title">Aktivitas terbaru</h2>
+      <p id="consoleUpdated" class="console-updated">Pembaruan manual, tanpa pemuatan otomatis.</p>
+    </div>
+    <p id="consoleStatus" class="console-status" role="status" aria-live="polite" aria-atomic="true">Memuat aktivitas…</p>
+    <div class="console-state-actions">
+      <button id="consoleRetry" class="console-button console-button-secondary" type="button" hidden>Coba lagi</button>
+      <a id="consoleSessionLink" class="console-button console-button-primary" href="/login" hidden>Masuk kembali</a>
+    </div>
+    <ol id="consoleList" class="console-list console-list-screen-reader" aria-label="Aktivitas, terbaru lebih dulu" hidden></ol>
+    <pre id="consoleTerminal" class="console-terminal" tabindex="0" aria-label="Log terminal, terbaru lebih dulu"><code id="consoleTerminalBody"></code></pre>
+  </section>
+  <noscript><p class="console-error">Aktifkan JavaScript untuk memuat aktivitas Console Log.</p></noscript>
+</section>
+
+<dialog id="consoleDetailDialog" class="console-dialog" aria-labelledby="consoleDetailTitle" aria-describedby="consoleDetailHint">
+  <div class="console-dialog-header">
+    <h2 id="consoleDetailTitle" class="console-section-title">Detail aktivitas</h2>
+    <button id="consoleDetailClose" class="console-button console-button-secondary" type="button" autofocus>Tutup</button>
+  </div>
+  <div class="console-dialog-body">
+    <p id="consoleDetailHint" class="console-hint">Metadata diagnostik yang telah disaring server. Tidak memuat kredensial atau isi permintaan.</p>
+    <p id="consoleDetailStatus" class="console-status" role="status" aria-live="polite"></p>
+    <p id="consoleDetailSummary" class="console-summary"></p>
+    <dl id="consoleDetailFields" class="console-detail-fields"></dl>
+    <details id="consoleJsonDisclosure" class="console-json-disclosure" hidden>
+      <summary class="console-json-label">Lihat JSON diagnostik</summary>
+      <pre id="consoleDetailJson" class="console-json" tabindex="0" aria-label="JSON diagnostik tersaring"></pre>
+    </details>
+  </div>
+  <div class="console-dialog-footer">
+    <button id="consoleDetailRetry" class="console-button console-button-secondary" type="button" hidden>Coba muat detail lagi</button>
+    <button id="consoleCopy" class="console-button console-button-primary" type="button" disabled>Salin JSON diagnostik</button>
+  </div>
+</dialog>

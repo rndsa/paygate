@@ -1,0 +1,46 @@
+<div class="fade-up">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Integrasi</p>
+      <h1>Dokumentasi API</h1>
+      <p class="page-description">Referensi autentikasi, order, dan checkout website.</p>
+    </div>
+    <div class="docs-downloads"><a href="/docs/API.md" download>docs/API.md</a><a href="/docs/LAB.md" download>Panduan koneksi</a></div>
+  </div>
+  <div class="card">
+    <div class="card-pad docs-body">
+      <section class="docs-section">
+        <h2>Autentikasi</h2>
+        <p>API order memakai <code>X-Api-Key</code>. Key revoked langsung ditolak. Dashboard memakai sesi + <code>X-CSRF-Token</code>. Login merchant hanya pemilik akun dengan sesi dashboard.</p>
+      </section>
+      <section class="docs-section">
+        <h2>POST /api/orders/create</h2>
+        <pre class="code">{"provider":"gopay","amount":25000,"description":"Pesanan"}</pre>
+        <p>Provider wajib: gopay atau shopeepay. Akun aktif dan tervalidasi diperlukan; tidak tersedia: 503. Nominal maksimal Rp 100.000; tidak boleh dipakai ulang sepanjang riwayat provider.</p>
+      </section>
+      <section class="docs-section">
+        <h2>GET /api/orders/:id/status</h2>
+        <p><code>payment_origin=live</code> untuk order nyata baru. <code>paid</code> berarti cocok nominal, bukan bukti identitas pembayar atau settlement. <code>legacy_unverified</code> tidak dihitung sebagai dana nyata; QR/payload disembunyikan.</p>
+      </section>
+      <section class="docs-section">
+        <h2>Pasang di website</h2>
+        <p>Node.js 24, API key dan harga hanya di server. Contoh berikut berjalan di localhost; pasang ke website Anda sebelum dipublikasikan. Jangan expose langsung ke internet; perlu cart persisten, idempotensi, rekonsiliasi dan fulfillment terverifikasi.</p>
+        <div class="docs-downloads"><a href="/docs/WEBSITE.md" download>Panduan checkout website</a><a href="/docs/website.mjs" download>Unduh server checkout</a></div>
+      </section>
+      <section class="docs-section">
+        <h2>GoPay dashboard login</h2>
+        <p><code>POST /api/accounts/login/start</code>: provider, phone, password PayGate, consent. <code>/verify</code>: attempt_id, otp. <code>/finish</code>: attempt_id, merchant (pilihan opaque dari server). <code>/cancel</code>: attempt_id. Semua memakai provider=gopay, sesi dan CSRF.</p>
+        <p>Simpan &amp; aktifkan meminta satu pengecekan feed setelah sesi disimpan; kegagalan berhenti. GoPay menampilkan tahap, status HTTP provider, dan ID diagnostik aman saat tersedia.</p>
+      </section>
+      <section class="docs-section">
+        <h2>ShopeePay: login password</h2>
+        <p><code>POST /api/accounts/shopee/login/start</code>: identifier, merchant_password, password PayGate, consent=true. <code>/verify</code>: attempt_id, otp. <code>/finish</code>: attempt_id, choice, qris_static. <code>/cancel</code>: attempt_id. Sesi owner, CSRF, dan persetujuan wajib; cancel tetap tersedia tanpa persetujuan baru.</p>
+        <p>Browser server membuka portal resmi, lalu pilihan toko berasal dari hasil provider yang terverifikasi. Tidak perlu DevTools atau token manual. CAPTCHA menghentikan proses. Sesi tersimpan terenkripsi, belum aktif sebelum feed lolos. <a href="/docs/SHOPEE_CONNECT.md" download>Panduan login ShopeePay</a>.</p>
+      </section>
+      <section class="docs-section">
+        <h2>Error</h2>
+        <p>401 auth; 403 CSRF/akses; 404 bukan milik user; 409 konflik; 410 percobaan kedaluwarsa; 422 validasi; 429 cooldown; 503 akun belum siap.</p>
+      </section>
+    </div>
+  </div>
+</div>

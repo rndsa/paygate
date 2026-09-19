@@ -1,0 +1,27 @@
+{
+  "name": "paygate",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "Self-hosted personal payment gateway (QRIS via ShopeePay/GoPay) with hardened auth & API keys",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "setup": "node src/setup.js",
+    "test": "node tests/backend.mjs && node tests/provider.mjs && node tests/lab.mjs && node tests/login.mjs && node tests/shopee.mjs && node tests/terms.mjs && node tests/render.mjs && node tests/website.mjs && node --test tests/qris.mjs tests/amount-allocator.mjs tests/qris-analyzer.mjs tests/ui.test.js tests/account-flow.mjs tests/shopee-ui.mjs tests/input-format.mjs tests/tax.mjs tests/income.mjs && node tests/shopee-login.mjs && node tests/console.mjs && node tests/console-capture.mjs && node tests/console-integration.mjs && node --test tests/console-ui.mjs tests/studio-style.mjs"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "overrides": {
+    "qs": "6.16.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "otpauth": "^9.5.2",
+    "qrcode": "^1.5.4"
+  }
+}

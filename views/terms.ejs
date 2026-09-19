@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Syarat Penggunaan — PayGate</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=studio4n">
+  <script src="/static/js/theme.js?v=studio4n" defer></script>
+  <script src="/static/js/terms.js?v=studio4n" defer></script>
+</head>
+<body class="consent-shell">
+  <%- include('partials/login-body', { loginInert: true, error: null }) %>
+  <dialog id="termsDialog" class="consent-dialog" open aria-labelledby="termsDialogTitle" aria-describedby="termsRisks">
+    <p class="eyebrow">PayGate · Sebelum masuk</p>
+    <h1 id="termsDialogTitle">Syarat Penggunaan</h1>
+    <p id="termsRisks" class="consent-risks">Bukan mitra resmi provider.<br>Akun bisa diblokir; dana ditahan.</p>
+    <% if (error) { %><p class="alert alert-error" role="alert"><%= error %></p><% } %>
+    <% if (declined) { %><p class="consent-status" role="status">Persetujuan belum disimpan. Tutup halaman jika tidak setuju.</p><% } %>
+    <a class="consent-faq-link" href="/terms/details" target="_blank" rel="noopener noreferrer">Baca ketentuan lengkap <span>(tab baru)</span></a>
+    <form class="terms-form" method="POST" action="/terms/accept">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="version" value="<%= version %>">
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="terms-consent"><input id="termsAccepted" type="checkbox" name="accepted" value="yes" required autofocus><label for="termsAccepted">Saya memahami risiko dan menyetujui Syarat Penggunaan.</label></div>
+      <div class="terms-actions">
+        <button type="submit" class="btn btn-primary">Saya setuju &amp; lanjutkan</button>
+        <a id="termsDecline" class="btn btn-ghost" href="/terms?declined=1&amp;next=<%= encodeURIComponent(next) %>">Tidak setuju</a>
+      </div>
+    </form>
+    <p class="consent-intro">Berlaku 180 hari; muncul lagi jika cookie hilang atau ketentuan berubah.</p>
+  </dialog>
+</body>
+</html>

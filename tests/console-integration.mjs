@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+const root=path.resolve(import.meta.dirname,'..');
+const read=f=>readFileSync(path.join(root,f),'utf8');
+const server=read('src/server.js'),side=read('views/partials/sidebar.ejs'),layout=read('views/layout.ejs'),auth=read('src/routes/auth.js'),accounts=read('src/routes/accounts.js'),shopee=read('src/routes/shopee-login.js'),orders=read('src/routes/orders.js'),keys=read('src/routes/apikeys.js'),settings=read('src/routes/settings.js'),lab=read('src/services/lab.js');
+assert.match(server,/consoleRoutes/);assert.match(server,/"\/console"/);assert.match(server,/"\/api\/console"/);
+assert.match(side,/href="\/console"/);assert.match(side,/active === 'console'/);
+assert.match(layout,/console\.js\?v=studio4n/);for(const f of ['views/layout.ejs','views/login.ejs'])assert.match(read(f),/\?v=studio4n/);
+for(const [name,text,events] of [['auth',auth,['AUTH_LOGIN','AUTH_LOGOUT','AUTH_PASSWORD']],['accounts',accounts,['GOPAY_LOGIN_START','ACCOUNT_TEST','ACCOUNT_RESUME','ACCOUNT_PAUSE','ACCOUNT_DELETE']],['shopee',shopee,['SHOPEE_LOGIN_START','SHOPEE_LOGIN_VERIFY','SHOPEE_LOGIN_FINISH','SHOPEE_LOGIN_CANCEL']],['orders',orders,['ORDER_CREATE','ORDER_CHECK']],['apikeys',keys,['APIKEY_CREATE','APIKEY_REVOKE','APIKEY_REGENERATE']],['settings',settings,['SETTINGS_UPDATE']],['lab',lab,['PROVIDER_POLL','PAYMENT_MATCH','PAYMENT_UNMATCHED']]])for(const event of events)assert.ok(text.includes(event),`${name} missing ${event}`);
+assert.doesNotMatch([auth,accounts,shopee,orders,keys,settings,lab].join('\n'),/recordEvent\s*\(\s*req\.(?:body|headers|query)/);
+console.log('PASS console page is integrated, cache-busted and captures the agreed safe activity catalogue');

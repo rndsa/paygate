@@ -1,0 +1,135 @@
+<% const labOwner = config.labUnofficialEnabled && user.id === config.labUserId; %>
+<div class="fade-up" data-lab-eligible="<%= labOwner %>">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Koneksi merchant</p>
+      <h1>Akun Pembayaran</h1>
+      <p class="page-description">Hubungkan akun pembayaran kamu supaya tagihan bisa dibuat. Statusnya diperbarui otomatis saat halaman ini dibuka.</p>
+    </div>
+    <button class="btn btn-outline" type="button" data-action="refresh-accounts">Perbarui status</button>
+  </div>
+  <div class="grid grid-2" id="providerCards" aria-live="polite">
+  <% for (const p of [{prefix:'gp',name:'GoPay',provider:'gopay'},{prefix:'sp',name:'ShopeePay',provider:'shopeepay'}]) { %>
+    <article class="card provider-card" data-provider="<%= p.provider %>">
+      <div class="card-header">
+        <div class="provider-brand"><span class="provider-mark" aria-hidden="true"><%= p.name.charAt(0) %></span><h2><%= p.name %></h2></div>
+        <span class="section-link" id="<%= p.prefix %>Badge">Memuat…</span>
+      </div>
+      <div class="card-pad" id="<%= p.prefix %>Body">Memuat status lokal…</div>
+    </article>
+  <% } %>
+  </div>
+  <section class="mt-24" aria-label="API resmi">
+    <details class="setup-guide official-guide">
+      <summary>API resmi <span class="small muted">· perlu onboarding partner</span></summary>
+      <p class="connection-caption">Belum terhubung ke API resmi. Koneksi di atas masih memakai jalur privat.</p>
+      <div class="official-options">
+        <div><h2>GoBiz OAuth</h2><p>Login di halaman Gojek, lalu pilih outlet yang diizinkan. Perlu client ID, secret, dan callback terdaftar.</p><a href="https://developer.gobiz.com/contact-us" target="_blank" rel="noopener noreferrer">Daftar integrasi GoBiz</a></div>
+        <div><h2>ShopeePay partner</h2><p>Onboarding, aktivasi merchant, dan kunci API terbitan provider. Bukan login password/OTP merchant lewat PayGate.</p><a href="https://product.shopeepay.co.id/integration/get-started/javascript/" target="_blank" rel="noopener noreferrer">Panduan onboarding ShopeePay</a></div>
+        <div><h2>Midtrans</h2><p>Alternatif menerima QRIS resmi. Perlu akun merchant, verifikasi usaha, dan Server Key.</p><a href="https://dashboard.midtrans.com/register" target="_blank" rel="noopener noreferrer">Daftar Midtrans</a></div>
+      </div>
+    </details>
+  </section>
+  <section class="mt-24" aria-label="Cara kerja">
+    <details class="setup-guide">
+      <summary>Cara kerja dan batas penggunaan</summary>
+      <ol class="setup-steps">
+        <li>Hubungkan akun sendiri dan pilih merchant yang dikelola.</li>
+        <li>Pilih <strong>Simpan &amp; aktifkan</strong> agar PayGate mengecek koneksi sekali setelah penyimpanan.</li>
+        <li>Jika lolos, pemeriksaan order berjalan otomatis di server. OTP, challenge, dan hubungkan ulang tetap manual.</li>
+      </ol>
+      <p>Password PayGate digunakan untuk autentikasi ulang. Untuk ShopeePay, kamu bisa memakai login browser (nomor/email + password Shopee) atau mengimpor sesi sendiri lewat token B:.</p>
+    </details>
+  </section>
+</div>
+<% if (labOwner) { %>
+<dialog class="modal" id="spGuideDialog" aria-labelledby="spGuideTitle">
+  <div class="modal-header"><h3 id="spGuideTitle">Hubungkan ShopeePay</h3><button class="modal-close" type="button" data-action="close-modal" data-modal="spGuideDialog" aria-label="Tutup panduan">&times;</button></div>
+  <div class="modal-body">
+    <p class="connection-caption">Pilih salah satu cara menghubungkan ShopeePay milikmu.</p>
+    <div class="connect-choices">
+      <button class="connect-choice" type="button" data-action="shopee-browser">
+        <span class="connect-choice-title">Login browser <span class="badge badge-success">Disarankan</span></span>
+        <span class="connect-choice-desc">PayGate yang membuka portal resmi Shopee dan login sendiri. Cukup nomor/email + password Shopee.</span>
+      </button>
+      <button class="connect-choice" type="button" data-action="shopee-connect">
+        <span class="connect-choice-title">Impor sesi (token B:)</span>
+        <span class="connect-choice-desc">Untuk yang sudah punya sesi merchant sendiri. Tempel token, ID merchant, ID toko, dan QRIS statis.</span>
+      </button>
+    </div>
+    <details class="setup-guide">
+      <summary>Cara mengambil token B: di Shopee Partner</summary>
+      <ol class="setup-steps">
+        <li>Buka <a href="https://partner.shopee.co.id" target="_blank" rel="noopener noreferrer">Shopee Partner</a> di browser pribadi, login sendiri, lalu pilih merchant/outlet ShopeePay.</li>
+        <li>Pada halaman Shopee Partner, klik kanan di area kosong lalu pilih <strong>Inspect</strong>, buka tab <strong>Network</strong>, lalu klik menu <strong>riwayat transaksi</strong> di halaman itu.</li>
+        <li>Di daftar yang muncul, klik nama permintaan <code>get-transaction-list</code>, buka bagian payload-nya, dan salin hanya nilai <code>token</code> yang berawalan <code>B:</code>. Ambil ID merchant dan ID toko dari akun/outlet yang sama.</li>
+      </ol>
+      <p class="small muted">Kalau token B: tidak tampil, berhenti. Jangan menebak token, menyalin cookie/HAR, atau melewati challenge. <a href="/docs/SHOPEE_CONNECT.md" download>Unduh panduan rinci</a>.</p>
+    </details>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" type="button" data-action="close-modal" data-modal="spGuideDialog">Batal</button><button class="btn btn-outline" type="button" data-action="shopee-connect">Impor sesi</button><button class="btn btn-primary" type="button" data-action="shopee-browser">Login browser</button></div>
+</dialog>
+<dialog class="modal" id="spConnectDialog" aria-labelledby="spConnectTitle">
+  <div class="modal-header"><h3 id="spConnectTitle">Impor sesi ShopeePay</h3><button class="modal-close" type="button" data-action="shopee-connect-cancel" aria-label="Batalkan koneksi">&times;</button></div>
+  <div class="modal-body">
+    <p class="connection-caption">Sesi milik sendiri. Token dirahasiakan dan tersimpan terenkripsi di server.</p>
+    <form id="spConnectForm" autocomplete="off">
+      <div class="field"><label for="spToken">Token sesi merchant (B:...)</label><input class="input" id="spToken" type="password" required maxlength="4096" autocomplete="off" spellcheck="false" placeholder="B:..."><p class="hint">Token inti saja, bukan seluruh cookie/JWT atau data perangkat. Jangan kirim melalui chat.</p></div>
+      <div class="field"><label for="spMerchant">ID merchant pembayaran</label><input class="input" id="spMerchant" type="text" inputmode="numeric" pattern="[1-9][0-9]{0,99}" required maxlength="100"><p class="hint">Bukan businessId SSO. Cocokkan dengan merchant pemilik QRIS.</p></div>
+      <div class="field"><label for="spStore">ID toko</label><input class="input" id="spStore" type="text" inputmode="numeric" pattern="[1-9][0-9]{0,99}" required maxlength="100"><p class="hint">Outlet toko di merchant yang sama. Bukan ID merchant.</p></div>
+      <div class="field"><label for="spCQris">Payload QRIS statis merchant</label><textarea class="input" id="spCQris" rows="3" required maxlength="4096" autocomplete="off" spellcheck="false" placeholder="000201..."></textarea><p class="hint">Payload QRIS yang tampil di halaman pembayaran toko.</p></div>
+      <div class="field"><label for="spPassword">Password PayGate (bukan Shopee)</label><input class="input" id="spPassword" type="password" minlength="8" maxlength="128" required autocomplete="off"></div>
+      <div class="lab-consent"><input id="spConnectConsent" type="checkbox" required><label for="spConnectConsent">Saya pemilik akun; token, merchant, toko, dan QRIS berasal dari akun yang sama.</label></div>
+      <div class="lab-consent"><input id="spConnectAutoCheck" type="checkbox" checked><label for="spConnectAutoCheck">Cek koneksi lalu aktifkan otomatis jika lolos.</label></div>
+      <div id="spConnectError" class="alert alert-error hidden mt-16" role="alert"></div>
+    </form>
+  </div>
+  <div class="modal-footer"><button type="button" class="btn btn-ghost" data-action="shopee-connect-cancel">Batal</button><button class="btn btn-primary" id="spConnectSubmit" type="submit" form="spConnectForm">Simpan &amp; aktifkan</button></div>
+</dialog>
+<% } %>
+<dialog class="modal" id="gpLoginDialog" aria-labelledby="gpLoginTitle">
+  <div class="modal-header"><h3 id="gpLoginTitle">Hubungkan GoPay</h3><button type="button" class="modal-close" data-action="gopay-cancel" aria-label="Batalkan login">&times;</button></div>
+  <div class="modal-body">
+    <p class="connection-caption">Koneksi privat GoBiz, bukan API partner resmi.</p>
+    <div id="gpStepStart">
+      <div class="field"><label for="gpPhone">Nomor telepon Indonesia</label><div class="input-group phone-group"><span class="input-prefix" aria-hidden="true">+62</span><input class="input" id="gpPhone" type="tel" inputmode="tel" autocomplete="off" required maxlength="13" pattern="(?:0|62)?8[0-9]{7,12}" placeholder="81234567890" data-format="phone-local" aria-describedby="gpPhoneHint"></div><p class="hint" id="gpPhoneHint">Tulis nomornya saja, tanpa 0 atau +62 di depan…</p></div>
+      <div class="field"><label for="gpPaygatePassword">Password PayGate (bukan GoPay)</label><input class="input" id="gpPaygatePassword" type="password" autocomplete="off" required maxlength="128"></div>
+      <div class="field"><label for="gpOtpChannel">Kirim kode OTP lewat</label><select class="input" id="gpOtpChannel"><option value="sms" selected>SMS</option><option value="whatsapp">WhatsApp</option></select><p class="hint">Saat ini portal GoPay mengirim kode lewat SMS meski kamu pilih WhatsApp. Pilih SMS biar kodenya pasti sampai, lalu masukkan kodenya dengan cepat.</p></div>
+      <div class="lab-consent"><input type="checkbox" id="gpRiskConsent" required><label for="gpRiskConsent">Saya pemilik merchant dan mengizinkan permintaan OTP nyata.</label></div>
+      <button class="btn btn-primary mt-16" data-action="gopay-start">Kirim OTP</button>
+    </div>
+    <div id="gpStepOtp" hidden><div class="field"><label for="gpOtp">OTP GoPay</label><input class="input" id="gpOtp" type="text" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,10}" minlength="4" maxlength="10" required data-format="digits"></div><p class="hint" id="gpOtpChannelInfo" hidden></p><button class="btn btn-primary" data-action="gopay-verify">Verifikasi OTP</button></div>
+    <div id="gpStepMerchant" hidden><div class="field"><label for="gpMerchant">Merchant ditemukan</label><select class="input" id="gpMerchant" required></select></div><p>Pilih merchant sendiri. Satu outlet/POP didukung; pemeriksaan akun dilakukan terpisah.</p><div class="lab-consent"><input id="gpAutoCheck" type="checkbox" checked><label for="gpAutoCheck">Cek koneksi lalu aktifkan otomatis jika lolos.</label></div><button class="btn btn-primary" data-action="gopay-finish">Simpan &amp; aktifkan</button></div>
+    <div class="alert alert-error hidden mt-16" id="gpLoginError" role="alert"></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" data-action="gopay-cancel">Batal</button></div>
+</dialog>
+<dialog class="modal" id="spLoginDialog" aria-labelledby="spLoginTitle" aria-describedby="spLoginCaption">
+  <div class="modal-header"><h3 id="spLoginTitle">Login ShopeePay</h3><button class="modal-close" type="button" data-action="shopee-cancel" aria-label="Batalkan login ShopeePay">&times;</button></div>
+  <div class="modal-body">
+    <p class="connection-caption" id="spLoginCaption">Login browser privat, bukan API partner resmi.</p>
+    <form id="spStartForm" autocomplete="off">
+      <div class="field"><label for="spIdentifier">Nomor telepon, email, atau username Shopee</label><input class="input" id="spIdentifier" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" required maxlength="254" data-format="phone-optional"></div>
+      <div class="field"><label for="spMerchantPassword">Password Shopee (bukan PayGate)</label><input class="input" id="spMerchantPassword" type="password" autocomplete="off" required maxlength="128"><p class="hint">Dipakai hanya untuk proses login ini dan dikirim terenkripsi langsung ke server.</p></div>
+      <div class="field"><label for="spPaygatePassword">Password PayGate (bukan Shopee)</label><input class="input" id="spPaygatePassword" type="password" autocomplete="off" required minlength="8" maxlength="128"><p class="hint">Konfirmasi identitas pemilik instalasi PayGate.</p></div>
+      <div class="lab-consent"><input id="spConsent" type="checkbox" required><label for="spConsent">Saya pemilik merchant dan mengizinkan login nyata serta permintaan OTP bila diperlukan.</label></div>
+      <button class="btn btn-primary mt-16" id="spStartSubmit" type="submit">Login ShopeePay</button>
+    </form>
+    <form id="spOtpForm" autocomplete="off" hidden>
+      <p>Masukkan OTP dari Shopee. Tidak ada pengiriman ulang otomatis.</p>
+      <div class="field"><label for="spOtp">OTP Shopee</label><input class="input" id="spOtp" type="text" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required data-format="digits"></div>
+      <button class="btn btn-primary" id="spVerifySubmit" type="submit">Verifikasi OTP</button>
+    </form>
+    <form id="spStoreForm" autocomplete="off" hidden>
+      <div class="field"><label for="spChoice">Toko ditemukan</label><select class="input" id="spChoice" required></select><p class="hint">Pilih toko milik sendiri dari hasil login.</p></div>
+      <div class="field"><label for="spQris">Payload QRIS statis merchant</label><textarea class="input" id="spQris" rows="3" required maxlength="4096" autocomplete="off" spellcheck="false" placeholder="000201…"></textarea><p class="hint">Gunakan kode QRIS milik toko yang dipilih.</p></div>
+      <button class="btn btn-outline btn-sm" type="button" id="spQrisPreviewBtn">Pratinjau QRIS</button>
+      <div id="spQrisPreview" class="alert alert-neutral hidden mt-8" role="status"></div>
+      <div class="lab-consent"><input id="spAutoCheck" type="checkbox" checked><label for="spAutoCheck">Cek koneksi sekali lalu aktifkan otomatis jika lolos.</label></div>
+      <button class="btn btn-primary mt-16" id="spFinishSubmit" type="submit">Simpan &amp; aktifkan</button>
+    </form>
+    <p class="small muted" id="spLoginExpiry" role="status" hidden></p>
+    <div id="spLoginError" class="alert alert-error hidden mt-16" role="alert"></div>
+  </div>
+  <div class="modal-footer"><button type="button" class="btn btn-ghost" data-action="shopee-cancel">Batal</button></div>
+</dialog>

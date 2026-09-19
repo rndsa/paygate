@@ -1,0 +1,170 @@
+  <div class="fade-up">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Pengaturan</p>
+      <h1>Pengaturan</h1>
+      <p class="page-description">Atur pajak, tampilan, dan keamanan akun kamu di sini.</p>
+    </div>
+  </div>
+
+  <div class="grid settings-grid">
+    <div>
+    <!-- Pajak -->
+    <div class="card mb-16">
+      <div class="card-header"><div><h2>Pajak</h2><div class="desc">Atur potongan pajak untuk setiap pembayaran yang masuk</div></div></div>
+      <div class="card-pad">
+        <div id="taxStatus" class="alert alert-info">Memuat pengaturan pajak...</div>
+        <div class="field">
+          <label for="taxEnabled">Pakai pajak</label>
+          <select class="input" id="taxEnabled">
+            <option value="0">Tanpa pajak</option>
+            <option value="1">Dengan pajak</option>
+          </select>
+          <div class="hint">Kalau "Tanpa pajak", uang masuk sama persis dengan yang dibayar customer.</div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field">
+            <label for="taxMode">Cara hitung</label>
+            <select class="input" id="taxMode">
+              <option value="percent">Persen (%)</option>
+              <option value="fixed">Nominal tetap (Rp)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="taxValue">Angka pajak</label>
+            <input class="input" type="text" inputmode="numeric" id="taxValue" data-format="digits" placeholder="11">
+            <div class="hint" id="taxValueHint">Isi 11 untuk 11%.</div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="taxDirection">Cara pakai pajak</label>
+          <select class="input" id="taxDirection">
+            <option value="deduct">Dipotong dari uang yang masuk</option>
+            <option value="add">Ditambahkan ke uang yang masuk</option>
+            <option value="info">Cuma catatan (uang masuk tetap utuh)</option>
+          </select>
+          <div class="hint" id="taxDirectionHint">Contoh: customer bayar Rp50.000, pajak 11% = Rp5.500 dipotong, yang masuk Rp44.500.</div>
+        </div>
+        <div class="card-pad-inline">
+          <button class="btn btn-primary" data-action="tax-save">Simpan Pajak</button>
+          <button class="btn btn-ghost" data-action="tax-preview">Lihat Contoh</button>
+        </div>
+        <div id="taxPreview" class="alert alert-info hidden"></div>
+      </div>
+    </div>
+
+    <!-- Konfigurasi -->
+    <div class="card">
+      <div class="card-header"><div><h2>Pengaturan Pembayaran</h2><div class="desc">Nilai yang sedang berlaku (lihat saja)</div></div></div>
+      <div class="card-pad">
+        <div class="field">
+          <label for="setProvider">Akun penerima</label>
+          <input class="input" id="setProvider" readonly value="Pakai akun yang sudah terhubung">
+          <div class="hint">Cuma akun yang aktif dan sudah dites yang bisa dipakai. Nominal harus cocok persis.</div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field">
+            <label for="setPoll">Pemeriksaan otomatis pembayaran (detik)</label>
+            <input class="input" id="setPoll" readonly type="number">
+            <div class="hint">Seberapa sering sistem mengecek apakah tagihan sudah dibayar. Makin kecil, makin cepat terdeteksi.</div>
+          </div>
+          <div class="field">
+            <label for="setTolerance">Toleransi selisih nominal (Rp)</label>
+            <input class="input" id="setTolerance" readonly type="number">
+            <div class="hint">0 artinya nominal harus pas, tidak boleh selisih.</div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="setTtl">Batas waktu bayar tagihan (menit)</label>
+          <input class="input" id="setTtl" readonly type="number">
+          <div class="hint">Levat batas ini, tagihan otomatis hangus.</div>
+        </div>
+        <div class="alert alert-info">Angka-angka ini diatur dari server. Hubungi pengelola kalau mau diubah.</div>
+      </div>
+    </div>
+
+    <!-- Tampilan -->
+    <div class="card appearance-card mt-16">
+      <div class="card-header"><div><h2>Tampilan</h2><div class="desc">Pilih warna aksen yang kamu suka</div></div></div>
+      <div class="card-pad">
+        <div class="field">
+          <label for="accentColor">Warna aksen</label>
+          <div class="color-picker-row">
+            <input id="accentColor" type="color" value="#059669" aria-label="Pilih warna aksen">
+            <code id="accentColorValue">#059669</code>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="reset-accent">Kembalikan</button>
+          </div>
+          <div class="hint">Berlaku untuk tombol, link, dan ikon. Tersimpan di browser ini saja.</div>
+        </div>
+        <div class="accent-presets" role="group" aria-label="Pilihan warna aksen">
+          <button type="button" class="accent-swatch" data-accent="#059669" style="--swatch:#059669" aria-label="Hijau"></button>
+          <button type="button" class="accent-swatch" data-accent="#2563eb" style="--swatch:#2563eb" aria-label="Biru"></button>
+          <button type="button" class="accent-swatch" data-accent="#7c3aed" style="--swatch:#7c3aed" aria-label="Ungu"></button>
+          <button type="button" class="accent-swatch" data-accent="#db2777" style="--swatch:#db2777" aria-label="Pink"></button>
+          <button type="button" class="accent-swatch" data-accent="#ea580c" style="--swatch:#ea580c" aria-label="Oranye"></button>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- Keamanan -->
+    <div>
+      <div class="card mb-16">
+        <div class="card-header"><div><h2>Ganti Password</h2><div class="desc">Ganti password masuk kamu</div></div></div>
+        <div class="card-pad">
+          <div class="field">
+            <label for="pwCurrent">Password sekarang</label>
+            <input class="input" type="password" id="pwCurrent" autocomplete="current-password">
+          </div>
+          <div class="field">
+            <label for="pwNew">Password baru</label>
+            <input class="input" type="password" id="pwNew" autocomplete="new-password" minlength="8">
+            <div class="hint">Minimal 8 karakter.</div>
+          </div>
+          <div class="field">
+            <label for="pwConfirm">Ulangi password baru</label>
+            <input class="input" type="password" id="pwConfirm" autocomplete="new-password">
+          </div>
+          <button class="btn btn-outline" data-action="change-password">Simpan Password</button>
+        </div>
+      </div>
+
+      <div class="card mb-16">
+        <div class="card-header"><div><h2>Kunci Ganda (2FA)</h2><div class="desc">Minta kode tambahan dari aplikasi saat masuk</div></div></div>
+        <div class="card-pad">
+          <div id="totpStatus" class="alert alert-info">Memuat status 2FA...</div>
+          <div id="totpSetup" hidden>
+            <p class="hint">Scan QR di bawah pakai aplikasi autentikator (Google Authenticator, Authy, dll), lalu masukkan kode 6 digit untuk mengaktifkan.</p>
+            <div class="totp-qr"><img id="totpQr" alt="QR code 2FA" width="200" height="200"></div>
+            <div class="field">
+              <label for="totpSecret">Kode manual (kalau QR tidak bisa dipindai)</label>
+              <input class="input" id="totpSecret" readonly>
+            </div>
+            <div class="field">
+              <label for="totpCode">Kode 6 digit dari aplikasi</label>
+              <input class="input" type="text" inputmode="numeric" id="totpCode" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+            </div>
+            <button class="btn btn-primary" data-action="totp-enable">Aktifkan 2FA</button>
+            <button class="btn btn-ghost" data-action="totp-cancel">Batal</button>
+          </div>
+          <div id="totpDisable" hidden>
+            <div class="field">
+              <label for="totpPassword">Password PayGate</label>
+              <input class="input" type="password" id="totpPassword" autocomplete="current-password">
+              <div class="hint">Demi keamanan, masukkan password untuk mematikan 2FA.</div>
+            </div>
+            <button class="btn btn-danger-ghost" data-action="totp-disable">Matikan 2FA</button>
+          </div>
+          <button class="btn btn-outline" id="totpStartBtn" data-action="totp-start" hidden>Aktifkan 2FA</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div><h2>Keluar dari Semua Perangkat</h2><div class="desc">Putus semua sesi login yang sedang aktif</div></div></div>
+        <div class="card-pad">
+          <button class="btn btn-danger-ghost btn-block" data-action="logout-all">Keluar dari Semua Perangkat</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

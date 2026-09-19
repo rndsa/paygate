@@ -1,0 +1,46 @@
+[Unit]
+Description=PayGate merchant payment dashboard
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=paygate
+Group=paygate
+WorkingDirectory=/opt/paygate
+EnvironmentFile=/etc/paygate/paygate.env
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+Environment=PAYGATE_DATA_DIR=/var/lib/paygate
+Environment=DB_PATH=/var/lib/paygate/paygate.db
+ExecStart=/usr/bin/node /opt/paygate/src/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+StateDirectory=paygate
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# Outbound HTTPS/DNS required by fixed merchant auth/feed endpoints.
+# Application listens only on loopback; endpoint origins/paths are allowlisted in code.
+MemoryMax=384M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

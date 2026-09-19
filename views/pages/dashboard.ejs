@@ -1,0 +1,46 @@
+<div class="fade-up">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Ringkasan</p>
+      <h1>Ringkasan</h1>
+      <p class="page-description">Lihat tagihan terbaru, uang yang sudah masuk, dan status akun pembayaran kamu.</p>
+    </div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="grid grid-4 mb-16" id="statCards">
+    <div class="stat"><div class="muted small">Memuat ringkasan…</div></div>
+    <div class="stat"><div class="muted small">Memuat ringkasan…</div></div>
+    <div class="stat"><div class="muted small">Memuat ringkasan…</div></div>
+    <div class="stat"><div class="muted small">Memuat ringkasan…</div></div>
+  </div>
+
+  <div class="grid dashboard-grid">
+    <!-- Recent orders -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2>Order Terbaru</h2>
+          <div class="desc">Aktivitas order terakhir</div>
+        </div>
+        <a href="/orders" class="btn btn-ghost btn-sm section-link">Lihat semua</a>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Order ID</th><th>Amount</th><th>Status</th><th>Waktu</th></tr></thead>
+          <tbody id="recentOrders"><tr><td colspan="4" class="text-center muted">Memuat…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Status akun -->
+    <div class="card">
+      <div class="card-header"><div><h2>Akun Pembayaran</h2><div class="desc">Sumber uang masuk kamu</div></div></div>
+      <div class="card-pad" id="accountStatus">
+        <p class="muted small">Memuat status akun…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+

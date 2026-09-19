@@ -1,0 +1,1794 @@
+--- /root/paygate-backups/20260907T124424Z/package-lock.json
++++ /root/paygate/package-lock.json
+@@ -867,9 +867,9 @@
+       }
+     },
+     "node_modules/qs": {
+-      "version": "6.15.3",
+-      "resolved": "https://registry.npmjs.org/qs/-/qs-6.15.3.tgz",
+-      "integrity": "sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==",
++      "version": "6.16.0",
++      "resolved": "https://registry.npmjs.org/qs/-/qs-6.16.0.tgz",
++      "integrity": "sha512-h6fhOIaRrID2CbEY2fqs+7t+UXZo+MLAnU5gRIq85uFtdiUPCdsApMlHhXogKVM4HM2DVbIjGNTTYH2OcmP1vA==",
+       "license": "BSD-3-Clause",
+       "dependencies": {
+         "es-define-property": "^1.0.1",
+--- /root/paygate-backups/20260907T124424Z/package.json
++++ /root/paygate/package.json
+@@ -7,10 +7,14 @@
+   "scripts": {
+     "start": "node src/server.js",
+     "dev": "node --watch src/server.js",
+-    "setup": "node src/setup.js"
++    "setup": "node src/setup.js",
++    "test": "node tests/backend.mjs && node --test tests/ui.test.js"
+   },
+   "engines": {
+     "node": ">=22.5.0"
++  },
++  "overrides": {
++    "qs": "6.16.0"
+   },
+   "dependencies": {
+     "bcryptjs": "^2.4.3",
+--- /root/paygate-backups/20260907T124424Z/public/css/app.css
++++ /root/paygate/public/css/app.css
+@@ -67,6 +67,8 @@
+ button { font-family: inherit; }
+ 
+ /* ---------- Layout ---------- */
++.demo-banner { padding: 8px 16px; text-align: center; background: var(--warning-soft); color: var(--warning); border-bottom: 1px solid #f5d28a; font-size: 12px; font-weight: 700; }
++
+ .layout { display: flex; min-height: 100vh; }
+ 
+ .sidebar {
+@@ -261,15 +263,17 @@
+ .badge-primary { background: var(--primary-soft); color: var(--primary); }
+ 
+ /* ---------- Modal ---------- */
+-.modal-backdrop {
+-  position: fixed; inset: 0; background: rgba(15,23,42,.55); backdrop-filter: blur(3px);
+-  display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px;
+-}
+-.modal-backdrop.open { display: flex; }
+ .modal {
++  margin: auto; padding: 0; border: 0; color: var(--text);
+   background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
+-  width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; animation: modalIn .18s ease;
+-}
++  width: min(520px, calc(100% - 24px)); max-height: 90dvh; overflow-y: auto;
++}
++.modal[open] { display: flex; flex-direction: column; animation: modalIn .18s ease; }
++.modal > .modal-header, .modal > .modal-footer { flex-shrink: 0; background: var(--surface); }
++.modal > .modal-body { min-height: 0; overflow-y: auto; }
++.modal > .modal-footer { padding-top: 12px; border-top: 1px solid var(--border); }
++.modal::backdrop { background: rgba(15,23,42,.55); backdrop-filter: blur(3px); }
++body:has(dialog[open]) { overflow: hidden; }
+ .modal-lg { max-width: 720px; }
+ .modal-header { padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between; }
+ .modal-header h3 { font-size: 17px; font-weight: 700; }
+@@ -383,3 +387,32 @@
+ @media (max-width: 420px) {
+   .card-pad { padding: 16px; }
+ }
++
++/* Layout and keyboard safeguards. */
++.hidden { display: none !important; }
++[hidden] { display: none !important; }
++:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
++.grid > *, .stat > div, .key-box > span { min-width: 0; }
++.dashboard-grid { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
++.settings-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
++.modal-footer { flex-wrap: wrap; }
++.modal-close, .key-box button { min-width: 36px; min-height: 36px; }
++.modal-body .mono { overflow-wrap: anywhere; }
++.toast-container { max-width: calc(100vw - 24px); }
++.toast { min-width: 0; max-width: 100%; }
++@media (max-width: 768px) {
++  .dashboard-grid, .settings-grid { grid-template-columns: 1fr; }
++  .sidebar:not(.open) { visibility: hidden; }
++  .btn, .icon-btn, .burger { min-height: 44px; }
++  .topbar { gap: 8px; }
++  .topbar-title { font-size: 14px; }
++  .topbar-right { gap: 6px; }
++  .page-icon { flex-shrink: 0; }
++  .modal-body, .modal-header { padding: 16px; }
++  .modal-header { padding-bottom: 0; }
++  .modal-footer { padding: 0 16px 16px; }
++  .auth-form-side { padding: 24px; }
++}
++@media (prefers-reduced-motion: reduce) {
++  *, *::before, *::after { animation: none !important; transition: none !important; }
++}
+--- /root/paygate-backups/20260907T124424Z/public/js/app.js
++++ /root/paygate/public/js/app.js
+@@ -13,6 +13,7 @@
+     const el = document.createElement("div");
+     el.className = "toast " + type;
+     el.textContent = msg;
++    el.setAttribute("role", type === "error" ? "alert" : "status");
+     cont.appendChild(el);
+     setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .3s"; }, 3200);
+     setTimeout(() => el.remove(), 3600);
+@@ -43,11 +44,69 @@
+   function esc(s) {
+     const d = document.createElement("div");
+     d.textContent = s == null ? "" : String(s);
+-    return d.innerHTML;
++    return d.innerHTML.replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+   }
+-  function copyText(text, label) {
+-    navigator.clipboard?.writeText(text).then(() => toast(label || "Tersalin!", "success")).catch(() => toast("Gagal menyalin", "error"));
++  async function copyText(text, label) {
++    try {
++      if (!navigator.clipboard) throw new Error("Clipboard unavailable");
++      await navigator.clipboard.writeText(text);
++      toast(label || "Tersalin!", "success");
++    } catch { toast("Gagal menyalin. Pilih teks lalu salin manual.", "error"); }
+   }
+ 
+-  window.PayGate = { toast, api, csrfToken, fmtRupiah, fmtDate, esc, copyText };
++  // Native dialog supplies inert background, Escape and keyboard focus containment.
++  function openModal(id) {
++    const dialog = document.getElementById(id);
++    if (!dialog.open) {
++      dialog._opener = document.activeElement;
++      dialog.showModal();
++    }
++  }
++  function closeModal(id) { document.getElementById(id).close(); }
++  document.querySelectorAll("dialog").forEach(dialog => {
++    dialog.addEventListener("close", () => {
++      // A completed request may have opened the next dialog already.
++      if (document.querySelector("dialog[open]")) return;
++      const opener = dialog._opener;
++      const replacement = opener?.dataset.action && [...document.querySelectorAll("[data-action]")]
++        .find(el => el.dataset.action === opener.dataset.action && el.dataset.id === opener.dataset.id);
++      (opener?.isConnected ? opener : replacement)?.focus();
++    });
++    dialog.addEventListener("keydown", event => {
++      if (event.key !== "Tab") return;
++      const controls = [...dialog.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
++        .filter(el => !el.disabled && el.getClientRects().length);
++      const first = controls[0], last = controls.at(-1);
++      if (event.shiftKey && document.activeElement === first) {
++        event.preventDefault(); last?.focus();
++      } else if (!event.shiftKey && document.activeElement === last) {
++        event.preventDefault(); first?.focus();
++      }
++    });
++  });
++
++  // Explicit action maps only; data attributes never contain executable code.
++  function bindActions(actions) {
++    document.addEventListener("click", event => {
++      const el = event.target.closest("[data-action]");
++      if (el && !el.disabled && Object.hasOwn(actions, el.dataset.action)) actions[el.dataset.action](el);
++    });
++  }
++  bindActions({
++    "toggle-menu": el => {
++      const open = document.getElementById("sidebar").classList.toggle("open");
++      el.setAttribute("aria-expanded", String(open));
++    },
++    "info": () => toast("PayGate DEMO — tidak menerima uang sungguhan", "info"),
++    "close-modal": el => closeModal(el.dataset.modal),
++    "copy": el => copyText(document.getElementById(el.dataset.target).textContent)
++  });
++  document.querySelectorAll(".sidebar .nav-item").forEach(el => el.addEventListener("click", () => {
++    document.getElementById("sidebar").classList.remove("open");
++    document.querySelector(".burger")?.setAttribute("aria-expanded", "false");
++  }));
++  const icon = document.querySelector(".nav-item.active svg");
++  if (icon) document.getElementById("pageIcon")?.appendChild(icon.cloneNode(true));
++
++  window.PayGate = { openModal, closeModal, bindActions, toast, api, csrfToken, fmtRupiah, fmtDate, esc, copyText };
+ })();
+--- /root/paygate-backups/20260907T124424Z/src/config.js
++++ /root/paygate/src/config.js
+@@ -5,7 +5,7 @@
+ 
+ const __dirname = path.dirname(fileURLToPath(import.meta.url));
+ export const ROOT = path.resolve(__dirname, "..");
+-export const DATA_DIR = path.join(ROOT, "data");
++export const DATA_DIR = path.resolve(process.env.PAYGATE_DATA_DIR || path.join(ROOT, "data"));
+ 
+ // Ensure data dir exists
+ fs.mkdirSync(DATA_DIR, { recursive: true });
+@@ -24,7 +24,7 @@
+   return out;
+ }
+ 
+-const env = { ...process.env, ...loadEnvFile() };
++const env = { ...loadEnvFile(), ...process.env };
+ 
+ function bool(v, def = false) {
+   if (v === undefined || v === "") return def;
+@@ -33,6 +33,13 @@
+ function num(v, def) {
+   const n = Number(v);
+   return Number.isFinite(n) && n > 0 ? n : def;
++}
++
++function probability(v) {
++  if (v === undefined || v === "") return 0;
++  const n = Number(v);
++  if (!Number.isFinite(n) || n < 0 || n > 1) throw new Error("MOCK_AUTOPAY_PROBABILITY must be between 0 and 1");
++  return n;
+ }
+ 
+ export const config = {
+@@ -64,7 +71,8 @@
+   defaultProvider: env.DEFAULT_PROVIDER || "mock",
+ 
+   // Mock autopay: 0 = mati (bayar manual via simulate-payment), 0-1 = probabilitas tiap siklus
+-  mockAutopay: num(env.MOCK_AUTOPAY_PROBABILITY, 0.3),
++  mockAutopay: probability(env.MOCK_AUTOPAY_PROBABILITY),
++  mockEnabled: bool(env.ENABLE_MOCK_PAY, (env.NODE_ENV || "development") !== "production"),
+ 
+   // DB path
+   dbPath: env.DB_PATH || path.join(DATA_DIR, "paygate.db"),
+--- /root/paygate-backups/20260907T124424Z/src/middleware/security.js
++++ /root/paygate/src/middleware/security.js
+@@ -6,6 +6,7 @@
+ /** Security headers (selalu dipasang, kecuali endpoint yang perlu framing) */
+ export function securityHeaders(req, res, next) {
+   res.set({
++    "Cache-Control": "no-store",
+     "X-Content-Type-Options": "nosniff",
+     "X-Frame-Options": "DENY",
+     "Referrer-Policy": "same-origin",
+@@ -119,12 +120,8 @@
+   // Method aman: tanpa validasi
+   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+ 
+-  // API key auth (header) = bukan cookie-based → aman dari CSRF, bypass.
+-  const apiKeyHeader = req.headers["x-api-key"] || req.headers.authorization || "";
+-  if (String(apiKeyHeader).trim().length > 0) {
+-    // Divalidasi penuh nanti oleh requireApiKey; di sini hanya izinkan lewat.
+-    return next();
+-  }
++  // Only an already-validated API identity may bypass cookie CSRF.
++  if (req.apiKey && req.user?.viaApiKey) return next();
+ 
+   const sent = req.headers["x-csrf-token"] || req.body?._csrf || "";
+   if (!sent || !safeEqual(token, sent)) {
+@@ -164,19 +161,10 @@
+  * (req.user dari session sudah diset sessionMiddleware lebih dulu.)
+  */
+ export function optionalApiKeyAuth(req, res, next) {
+-  if (req.user) return next(); // sudah login via session
+-  const header = req.headers["x-api-key"] || req.headers.authorization || "";
+-  const token = String(header).replace(/^Bearer\s+/i, "").trim();
+-  if (!token) return next();
+-  const keyHash = hashToken(token);
+-  const row = db
+-    .prepare(`SELECT id, user_id, name, revoked_at FROM api_keys WHERE key_hash = ?`)
+-    .get(keyHash);
+-  if (!row || row.revoked_at) return next(); // biarkan requireAuth/endpoint yg reject
+-  const user = db.prepare("SELECT id, username, role FROM users WHERE id = ?").get(row.user_id);
+-  if (!user) return next();
+-  req.apiKey = { id: row.id, name: row.name };
+-  req.user = { id: user.id, username: user.username, role: user.role, viaApiKey: true };
++  if (req.apiKey) return next();
++  if (req.headers["x-api-key"] !== undefined || req.headers.authorization !== undefined) {
++    return requireApiKey(req, res, next);
++  }
+   next();
+ }
+ 
+@@ -187,7 +175,9 @@
+     const i = part.indexOf("=");
+     if (i === -1) continue;
+     const k = part.slice(0, i).trim();
+-    const v = decodeURIComponent(part.slice(i + 1).trim());
++    let v;
++    try { v = decodeURIComponent(part.slice(i + 1).trim()); }
++    catch { return res.status(400).json({ error: "Cookie invalid." }); }
+     if (k) out[k] = v;
+   }
+   req.cookies = out;
+--- /root/paygate-backups/20260907T124424Z/src/routes/accounts.js
++++ /root/paygate/src/routes/accounts.js
+@@ -1,12 +1,8 @@
+ import { Router } from "express";
+-import { db, dbNow } from "../db/index.js";
+-import { getEncryptionKey } from "../config.js";
+-import { encrypt, decrypt } from "../lib/crypto.js";
++import { db } from "../db/index.js";
+ import { cleanString, isProvider } from "../lib/validate.js";
+-import { getProviderFor } from "../services/provider.js";
+ 
+ const router = Router();
+-const encKey = getEncryptionKey();
+ 
+ // ---------- GET: status semua akun (tanpa bocorin kredensial) ----------
+ router.get("/", (req, res) => {
+@@ -19,82 +15,14 @@
+   res.json({ accounts: rows });
+ });
+ 
+-// ---------- POST: tambah/update akun provider (validasi dulu, baru simpan) ----------
+-router.post("/", async (req, res) => {
+-  const { provider, label, email, phone, password } = req.body || {};
+-
++// Real payment adapters are not available. Keep stored credentials untouched;
++// reject new credentials instead of claiming simulated validation succeeded.
++router.post(["/", "/test"], (req, res) => {
++  const { provider } = req.body || {};
+   if (!isProvider(provider) || provider === "mock") {
+     return res.status(422).json({ error: "Provider harus shopeepay atau gopay." });
+   }
+-
+-  const cleanLabel = cleanString(label || provider, 60);
+-  const cleanEmail = cleanString(email || "", 200).toLowerCase();
+-  const cleanPhone = cleanString(phone || "", 20);
+-  const cleanPassword = cleanString(password || "", 200);
+-
+-  // Validasi format dasar
+-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+-    return res.status(422).json({ error: "Email tidak valid." });
+-  }
+-  if (cleanPhone.length < 8 || !/^[0-9+()\-\s]+$/.test(cleanPhone)) {
+-    return res.status(422).json({ error: "Nomor HP tidak valid." });
+-  }
+-  if (cleanPassword.length < 6) {
+-    return res.status(422).json({ error: "Password/token terlalu pendek." });
+-  }
+-
+-  // Simpan kredensial terenkripsi (AES-256-GCM)
+-  const payload = JSON.stringify({ email: cleanEmail, phone: cleanPhone, password: cleanPassword });
+-  const encrypted = encrypt(payload, encKey);
+-
+-  // VALIDASI REAL-TIME via adapter (sebelum disimpan permanen)
+-  const providerAdapter = getProviderFor(provider);
+-  const validation = await providerAdapter.validateCredential(encrypted, encKey);
+-  if (!validation.ok) {
+-    return res.status(422).json({ error: validation.error || "Validasi gagal." });
+-  }
+-
+-  // Cek: hanya 1 akun per provider per user (UNIQUE constraint + cek manual)
+-  const existing = db.prepare("SELECT id FROM payment_accounts WHERE user_id = ? AND provider = ?").get(req.user.id, provider);
+-  const now = Date.now();
+-
+-  if (existing) {
+-    // Update akun yang ada (bukan bikin baru — no mass add)
+-    db.prepare(
+-      `UPDATE payment_accounts SET label = ?, credential = ?, status = 'active', last_error = NULL, last_validated_at = ?, updated_at = ?
+-       WHERE id = ? AND user_id = ?`
+-    ).run(cleanLabel, encrypted, now, now, existing.id, req.user.id);
+-    return res.json({ ok: true, message: "Akun diperbarui & tervalidasi.", provider });
+-  }
+-
+-  db.prepare(
+-    `INSERT INTO payment_accounts (user_id, provider, label, credential, status, last_validated_at, created_at, updated_at)
+-     VALUES (?, ?, ?, ?, 'active', ?, ?, ?)`
+-  ).run(req.user.id, provider, cleanLabel, encrypted, now, now, now);
+-
+-  res.status(201).json({ ok: true, message: "Akun ditambahkan & tervalidasi.", provider });
+-});
+-
+-// ---------- POST: test koneksi (validasi ulang tanpa menyimpan) ----------
+-router.post("/test", async (req, res) => {
+-  const { provider, email, phone, password } = req.body || {};
+-  if (!isProvider(provider) || provider === "mock") {
+-    return res.status(422).json({ error: "Provider harus shopeepay atau gopay." });
+-  }
+-  const cleanEmail = cleanString(email || "", 200).toLowerCase();
+-  const cleanPhone = cleanString(phone || "", 20);
+-  const cleanPassword = cleanString(password || "", 200);
+-
+-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return res.status(422).json({ error: "Email tidak valid." });
+-  if (cleanPhone.length < 8) return res.status(422).json({ error: "Nomor HP tidak valid." });
+-  if (cleanPassword.length < 6) return res.status(422).json({ error: "Password/token terlalu pendek." });
+-
+-  const payload = JSON.stringify({ email: cleanEmail, phone: cleanPhone, password: cleanPassword });
+-  const encrypted = encrypt(payload, encKey);
+-
+-  const adapter = getProviderFor(provider);
+-  const result = await adapter.validateCredential(encrypted, encKey);
+-  res.json(result.ok ? { ok: true, message: "Koneksi berhasil!" } : { ok: false, error: result.error });
++  return res.status(503).json({ error: "Integrasi provider asli belum tersedia. Jangan kirim kredensial asli." });
+ });
+ 
+ // ---------- DELETE: hapus akun ----------
+--- /root/paygate-backups/20260907T124424Z/src/routes/auth.js
++++ /root/paygate/src/routes/auth.js
+@@ -1,4 +1,5 @@
+ import { Router } from "express";
++import { asyncRoute } from "../lib/async.js";
+ import { db, dbNow } from "../db/index.js";
+ import { config } from "../config.js";
+ import { hashPassword, verifyPassword, randomToken, csrfToken } from "../lib/crypto.js";
+@@ -7,6 +8,13 @@
+ import { parseCookies, sessionCookieName, csrf } from "../middleware/security.js";
+ 
+ const router = Router();
++function safeNext(value) {
++  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || /[\\\x00-\x20]/.test(value)) return "/";
++  try {
++    const url = new URL(value, "https://paygate.invalid");
++    return url.origin === "https://paygate.invalid" ? url.pathname + url.search + url.hash : "/";
++  } catch { return "/"; }
++}
+ 
+ // Middleware spesifik auth: rate limit + cookies
+ router.use(parseCookies, csrf);
+@@ -17,14 +25,14 @@
+   res.render("login", {
+     title: "Login — PayGate",
+     error: null,
+-    next: req.query.next || "/",
++    next: safeNext(req.query.next),
+   });
+ });
+ 
+-router.post("/login", rateLimit({ bucket: "login", max: 10, windowMs: 60_000 }), async (req, res) => {
++router.post("/login", rateLimit({ bucket: "login", max: 10, windowMs: 60_000 }), asyncRoute(async (req, res) => {
+   const username = cleanString(req.body?.username, 32);
+-  const password = String(req.body?.password || "");
+-  const next = cleanString(req.query.next || req.body?.next || "/", 200);
++  const password = typeof req.body?.password === "string" ? req.body.password : "";
++  const next = safeNext(req.query.next || req.body?.next);
+   const ip = req.ip || req.socket?.remoteAddress || "unknown";
+ 
+   // Cek lockout dulu
+@@ -62,7 +70,7 @@
+   });
+ 
+   res.redirect(next);
+-});
++}));
+ 
+ // ---------- LOGOUT ----------
+ router.post("/logout", (req, res) => {
+@@ -75,11 +83,11 @@
+ });
+ 
+ // ---------- CHANGE PASSWORD ----------
+-router.post("/change-password", async (req, res) => {
++router.post("/change-password", asyncRoute(async (req, res) => {
+   if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+-  const oldPw = String(req.body?.current_password || "");
+-  const newPw = String(req.body?.new_password || "");
+-  const confirmPw = String(req.body?.confirm_password || "");
++  const oldPw = typeof req.body?.current_password === "string" ? req.body.current_password : "";
++  const newPw = typeof req.body?.new_password === "string" ? req.body.new_password : "";
++  const confirmPw = typeof req.body?.confirm_password === "string" ? req.body.confirm_password : "";
+ 
+   if (newPw !== confirmPw) return res.status(422).json({ error: "Password baru tidak cocok." });
+   if (!isPassword(newPw)) return res.status(422).json({ error: "Password minimal 8 karakter." });
+@@ -95,6 +103,6 @@
+   db.prepare("DELETE FROM sessions WHERE user_id = ? AND id != ?").run(req.user.id, req.user.sid);
+ 
+   res.json({ ok: true });
+-});
++}));
+ 
+ export default router;--- /root/paygate-backups/20260907T124424Z/src/routes/orders.js
++++ /root/paygate/src/routes/orders.js
+@@ -1,15 +1,14 @@
+ import { Router } from "express";
+ import crypto from "node:crypto";
++import { asyncRoute } from "../lib/async.js";
+ import { db } from "../db/index.js";
+-import { getEncryptionKey } from "../config.js";
+-import { decrypt } from "../lib/crypto.js";
+-import { staticToDynamicQris, qrisImageDataUrl, crc16ccitt } from "../lib/qris.js";
+-import { isAmount, cleanString, isOrderId } from "../lib/validate.js";
+-import { getProviderFor } from "../services/provider.js";
+-import { requireApiKey, optionalApiKeyAuth } from "../middleware/security.js";
++import { config } from "../config.js";
++import { qrisImageDataUrl } from "../lib/qris.js";
++import { isAmount, cleanString, isOrderId, isProvider } from "../lib/validate.js";
++import { requireAuth, optionalApiKeyAuth } from "../middleware/security.js";
++import { handleIncomingTransaction } from "../services/poller.js";
+ 
+ const router = Router();
+-const encKey = getEncryptionKey();
+ 
+ // ---------- Generate Order ID ----------
+ function generateOrderId() {
+@@ -18,7 +17,7 @@
+ }
+ 
+ // ---------- Create order (api-key protected) ----------
+-router.post("/create", requireApiKey, async (req, res) => {
++router.post("/create", optionalApiKeyAuth, requireAuth, asyncRoute(async (req, res) => {
+   const amountRaw = req.body?.amount;
+   const description = cleanString(req.body?.description || "", 200);
+   const providerName = cleanString(req.body?.provider || "mock", 20);
+@@ -28,67 +27,44 @@
+   }
+   const amount = Math.round(Number(amountRaw));
+ 
+-  // Ambil akun payment user (prioritas: provider yg diminta, lalu mock)
+-  const account = db
+-    .prepare("SELECT id, provider, credential FROM payment_accounts WHERE user_id = ? AND provider = ? AND status = 'active'")
+-    .get(req.user.id, providerName);
+-
+-  if (!account && providerName !== "mock") {
+-    return res.status(400).json({ error: `Akun ${providerName} belum dikonfigurasi atau tidak aktif.` });
+-  }
+-
+-  // Generate QRIS (mock: buat string dummy valid)
+-  let qrisPayload = "";
+-  if (account && account.provider !== "mock") {
+-    // Provider asli: QRIS dari statis yang disimpan
+-    try {
+-      const credRaw = decrypt(account.credential, encKey);
+-      const cred = credRaw ? JSON.parse(credRaw) : {};
+-      if (cred.qris_static) {
+-        qrisPayload = staticToDynamicQris(cred.qris_static, amount);
+-      } else {
+-        // Fallback: generate dummy QRIS pake format standar
+-        qrisPayload = generateMockQris(amount);
+-      }
+-    } catch {
+-      qrisPayload = generateMockQris(amount);
+-    }
+-  } else {
+-    qrisPayload = generateMockQris(amount);
+-  }
+-
+-  // Generate QR image
+-  let qrisImage = "";
++  if (!isProvider(providerName)) return res.status(422).json({ error: "Provider invalid." });
++  // No verified real adapter yet; never silently generate a fake payment QR.
++  if (providerName !== "mock") return res.status(503).json({ error: "Integrasi provider asli belum tersedia." });
++  if (!config.mockEnabled) return res.status(403).json({ error: "Mode simulasi dinonaktifkan." });
++  const orderId = generateOrderId();
++  const qrisPayload = `PAYGATE-DEMO:${orderId}:${amount}`;
++  let qrisImage;
+   try {
+     qrisImage = await qrisImageDataUrl(qrisPayload);
+   } catch {
+-    qrisImage = "";
++    return res.status(500).json({ error: "Gagal membuat QR demo." });
+   }
+-
+-  const orderId = generateOrderId();
+   const now = Date.now();
+-  const expiresAt = now + 30 * 60_000; // 30 menit
++  const expiresAt = now + config.orderTtlMinutes * 60_000;
+ 
+   db.prepare(
+     `INSERT INTO orders (id, user_id, provider, account_id, amount, description, status, qris_payload, qris_image, expires_at, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`
+-  ).run(orderId, req.user.id, providerName, account?.id || null, amount, description, qrisPayload, qrisImage, expiresAt, now, now);
++  ).run(orderId, req.user.id, providerName, null, amount, description, qrisPayload, qrisImage, expiresAt, now, now);
+ 
+   res.status(201).json({
+     order_id: orderId,
++    provider: providerName,
++    mock: true,
+     amount,
+     expires_at: expiresAt,
+     qris_payload: qrisPayload,
+     qris_image: qrisImage,
+     status: "pending",
+   });
+-});
++}));
+ 
+ // ---------- SIMULATE PAYMENT (mock/dev only) ----------
+ // Endpoint tes: menandai order pending sebagai "dibayar" persis seperti
+ // kalau polling engine mendeteksi transfer masuk. HANYA aktif saat mock.
+ // Di production dengan provider asli, endpoint ini TIDAK ADA.
+-router.post("/:id/simulate-payment", requireApiKey, (req, res) => {
++router.post("/:id/simulate-payment", optionalApiKeyAuth, requireAuth, (req, res) => {
++  if (!config.mockEnabled) return res.status(403).json({ error: "Mode simulasi dinonaktifkan." });
+   const oid = cleanString(req.params.id || "", 30);
+   if (!isOrderId(oid)) return res.status(400).json({ error: "Order ID invalid." });
+ 
+@@ -100,24 +76,15 @@
+   if (order.status !== "pending") {
+     return res.status(409).json({ error: `Order sudah berstatus ${order.status}.` });
+   }
+-  if (order.expires_at < Date.now()) {
++  if (order.expires_at <= Date.now()) {
+     return res.status(410).json({ error: "Order sudah kedaluwarsa." });
+   }
+ 
+-  // Insert ke seen_transactions (persis seperti deteksi transfer real)
+-  const txid = `SIM-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+-  const now = Date.now();
+-  db.prepare(
+-    `INSERT OR IGNORE INTO seen_transactions (provider, txid, account_id, amount, tx_time, seen_at, consumed_by)
+-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+-  ).run("mock", txid, null, order.amount, now, now, order.id);
+-
+-  db.prepare(
+-    `UPDATE orders SET status = 'paid', claimed_txid = ?, claimed_at = ?, updated_at = ?
+-     WHERE id = ? AND status = 'pending'`
+-  ).run(txid, now, now, order.id);
+-
+-  console.log(`[simulate] Order ${order.id} LUNAS (mock, ${txid})`);
++  const txid = `SIM-${crypto.randomUUID()}`;
++  const paid = handleIncomingTransaction("mock", {
++    txid, orderId: order.id, userId: req.user.id, amount: order.amount, time: Date.now(),
++  });
++  if (!paid) return res.status(409).json({ error: "Order tidak dapat diklaim." });
+   res.json({ ok: true, order_id: order.id, status: "paid", claimed_txid: txid });
+ });
+ 
+@@ -131,7 +98,7 @@
+   const order = db.prepare("SELECT * FROM orders WHERE id = ? AND user_id = ?").get(oid, userId);
+   if (!order) return res.status(404).json({ error: "Order tidak ditemukan." });
+ 
+-  const expired = order.expires_at < Date.now() && order.status === "pending";
++  const expired = order.expires_at <= Date.now() && order.status === "pending";
+   if (expired) {
+     db.prepare("UPDATE orders SET status = 'expired', updated_at = ? WHERE id = ? AND status = 'pending'")
+       .run(Date.now(), order.id);
+@@ -140,6 +107,9 @@
+ 
+   res.json({
+     order_id: order.id,
++    provider: order.provider,
++    mock: order.provider === "mock",
++    claimed_txid: order.claimed_txid,
+     amount: order.amount,
+     status: order.status,
+     claimed: !!order.claimed_txid,
+@@ -156,27 +126,9 @@
+   const userId = req.user?.id || req.apiKey?.user_id;
+ 
+   const rows = db
+-    .prepare("SELECT id, amount, description, status, claimed_txid, claimed_at, created_at, expires_at FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 50")
++    .prepare("SELECT id, provider, amount, description, status, claimed_txid, claimed_at, created_at, expires_at FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 50")
+     .all(userId);
+   res.json({ orders: rows });
+ });
+ 
+-// ---------- helper: generate mock QRIS string ----------
+-function generateMockQris(amount) {
+-  // Format QRIS standar dengan data dummy — valid CRC
+-  const merchant = "PAYGATE";
+-  const city = "JAKARTA";
+-  const prefix = "000201010212"; // 010212 = dinamis
+-  const nmid = "26570011ID.CO.QRIS.WWW01189360091800227615670208227615670303UMI";
+-  const ctry = "5802ID";
+-  const nameTag = "59" + String(merchant.length).padStart(2, "0") + merchant;
+-  const cityTag = "60" + String(city.length).padStart(2, "0") + city;
+-  const amountTag = "54" + String(String(amount).length).padStart(2, "0") + amount;
+-  const extra = "6304";
+-
+-  // Generate mock QRIS (valid EMVCo — bisa discan buat tes)
+-  const body = prefix + nmid + ctry + nameTag + cityTag + amountTag + extra;
+-  return body + crc16ccitt(body);
+-}
+-
+ export default router;--- /root/paygate-backups/20260907T124424Z/src/routes/settings.js
++++ /root/paygate/src/routes/settings.js
+@@ -1,33 +1,16 @@
+ import { Router } from "express";
+-import { db } from "../db/index.js";
++import { config } from "../config.js";
+ 
+ const router = Router();
+-
+-// Setting: mode provider default, dst (disimpan di tabel settings)
+-router.get("/", (req, res) => {
+-  const get = (k) => {
+-    const r = db.prepare("SELECT value FROM settings WHERE key = ?").get(k);
+-    return r?.value ?? null;
+-  };
+-  res.json({
+-    default_provider: get("default_provider") || "mock",
+-    poll_interval_ms: Number(get("poll_interval_ms") || 5000),
+-    payment_tolerance: Number(get("payment_tolerance") || 100),
+-    order_ttl_minutes: Number(get("order_ttl_minutes") || 30),
+-  });
+-});
+-
+-router.post("/", (req, res) => {
+-  const { default_provider, poll_interval_ms, payment_tolerance, order_ttl_minutes } = req.body || {};
+-  const set = (k, v) => db.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(k, String(v));
+-
+-  const providers = ["mock", "shopeepay", "gopay"];
+-  if (providers.includes(default_provider)) set("default_provider", default_provider);
+-  if (poll_interval_ms && poll_interval_ms >= 1000 && poll_interval_ms <= 60000) set("poll_interval_ms", poll_interval_ms);
+-  if (payment_tolerance && payment_tolerance >= 0 && payment_tolerance <= 10000) set("payment_tolerance", payment_tolerance);
+-  if (order_ttl_minutes && order_ttl_minutes >= 1 && order_ttl_minutes <= 1440) set("order_ttl_minutes", order_ttl_minutes);
+-
+-  res.json({ ok: true, message: "Settings disimpan." });
+-});
+-
+-export default router;+// Runtime settings are read-only until a scoped, effective settings layer exists.
++router.get("/", (req, res) => res.json({
++  read_only: true,
++  default_provider: config.defaultProvider,
++  poll_interval_ms: config.pollIntervalMs,
++  payment_tolerance: config.paymentTolerance,
++  order_ttl_minutes: config.orderTtlMinutes,
++  mock_enabled: config.mockEnabled,
++  mock_autopay: config.mockAutopay,
++}));
++router.post("/", (req, res) => res.status(503).json({ error: "Pengaturan runtime read-only; perubahan lewat konfigurasi server." }));
++export default router;
+--- /root/paygate-backups/20260907T124424Z/src/server.js
++++ /root/paygate/src/server.js
+@@ -3,10 +3,11 @@
+ import { fileURLToPath } from "node:url";
+ import { config, ROOT } from "./config.js";
+ import { db } from "./db/index.js";
+-import { parseCookies, securityHeaders, sessionMiddleware, csrf, requireAuth } from "./middleware/security.js";
++import { parseCookies, securityHeaders, sessionMiddleware, csrf, requireAuth, optionalApiKeyAuth } from "./middleware/security.js";
+ import { rateLimit, requestId } from "./middleware/rateLimit.js";
+ import { startPolling } from "./services/poller.js";
+ import { renderPage } from "./lib/render.js";
++import { asyncRoute } from "./lib/async.js";
+ 
+ import authRoutes from "./routes/auth.js";
+ import dashboardRoutes from "./routes/dashboard.js";
+@@ -41,6 +42,7 @@
+ app.use(parseCookies);
+ app.use(rateLimit({ bucket: "global", max: config.rateLimitMax, windowMs: config.rateLimitWindowMs }));
+ app.use(sessionMiddleware);
++app.use("/api/orders", optionalApiKeyAuth);
+ app.use(csrf);
+ 
+ // View engine
+@@ -72,7 +74,7 @@
+   ["/settings", "settings", "Settings"],
+ ];
+ for (const [route, page, title] of pages) {
+-  app.get(route, (req, res) => renderPage(res, page, { title, active: page, user: req.user }));
++  app.get(route, asyncRoute((req, res) => renderPage(res, page, { title, active: page, user: req.user })));
+ }
+ 
+ app.get("/", (req, res) => {
+@@ -99,10 +101,10 @@
+       `SELECT st.provider, st.txid, st.amount, st.tx_time, st.seen_at, st.consumed_by, o.status AS order_status
+        FROM seen_transactions st
+        LEFT JOIN orders o ON o.id = st.consumed_by
+-       WHERE st.consumed_by IN (SELECT id FROM orders WHERE user_id = ?) OR st.consumed_by IS NULL
++       WHERE o.user_id = ? OR (st.consumed_by IS NULL AND st.account_id IN (SELECT id FROM payment_accounts WHERE user_id = ?))
+        ORDER BY st.seen_at DESC LIMIT 100`
+     )
+-    .all(req.user.id);
++    .all(req.user.id, req.user.id);
+   res.json({
+     transactions: rows.map((r) => ({
+       provider: r.provider,
+--- /root/paygate-backups/20260907T124424Z/src/services/poller.js
++++ /root/paygate/src/services/poller.js
+@@ -1,8 +1,6 @@
+-import { db, dbNow } from "../db/index.js";
+-import { config, getEncryptionKey } from "../config.js";
+-import { decrypt } from "../lib/crypto.js";
+-
+-const encKey = getEncryptionKey();
++import { db } from "../db/index.js";
++import { config } from "../config.js";
++import { isOrderId } from "../lib/validate.js";
+ 
+ /**
+  * Payment polling engine (mock-first).
+@@ -14,6 +12,7 @@
+ // Sembarang helper buat mock: kalau ada order pending, "bayar" salah satunya
+ // supaya testing flow-nya keliatan (opsional — diaktifkan kalau ENABLE_MOCK_PAY=1)
+ function mockIncomingTransactions(providerName) {
++  if (providerName !== "mock" || !config.mockEnabled) return [];
+   const pending = db
+     .prepare(
+       `SELECT id, user_id, amount, provider FROM orders
+@@ -43,58 +42,36 @@
+ }
+ 
+ function runPollCycle() {
+-  const activeProviders = db
+-    .prepare(`SELECT DISTINCT provider FROM payment_accounts WHERE status = 'active'`)
+-    .all()
+-    .map((r) => r.provider);
+-
+-  // Selalu sertakan 'mock' biar bisa tes tanpa akun asli
+-  const providers = activeProviders.length ? [...new Set([...activeProviders, "mock"])] : ["mock"];
+-
+-  for (const provider of providers) {
+-    const incoming = mockIncomingTransactions(provider);
+-    for (const tx of incoming) {
+-      handleIncomingTransaction(provider, tx);
+-    }
++  for (const tx of mockIncomingTransactions("mock")) {
++    handleIncomingTransaction("mock", tx);
+   }
+ }
+ 
+-function handleIncomingTransaction(provider, tx) {
++// Atomic mock-only settlement. Real providers need a verified adapter, not amount guessing.
++export function handleIncomingTransaction(provider, tx) {
+   const now = Date.now();
+-
+-  // Dedup: cek sudah pernah diproses
+-  const seen = db
+-    .prepare("SELECT provider, txid FROM seen_transactions WHERE provider = ? AND txid = ?")
+-    .get(provider, tx.txid);
+-  if (seen) return; // sudah diproses — skip (anti double-claim)
+-
+-  // Simpan ke seen_transactions
+-  db.prepare(
+-    `INSERT OR IGNORE INTO seen_transactions (provider, txid, account_id, amount, tx_time, seen_at, consumed_by)
+-     VALUES (?, ?, ?, ?, ?, ?, NULL)`
+-  ).run(provider, tx.txid, null, tx.amount, tx.time || now, now);
+-
+-  // Cocokkan ke order pending yang cocok (nominal + user + provider)
+-  const order = db
+-    .prepare(
+-      `SELECT id FROM orders
+-       WHERE status = 'pending' AND provider = ? AND amount = ? AND user_id = ? AND expires_at > ?
+-       ORDER BY created_at ASC LIMIT 1`
+-    )
+-    .get(provider, tx.amount, tx.userId || 1, now);
+-
+-  if (order) {
+-    db.prepare(
+-      `UPDATE orders SET status = 'paid', claimed_txid = ?, claimed_at = ?, updated_at = ?
+-       WHERE id = ? AND status = 'pending'`
+-    ).run(tx.txid, now, now, order.id);
+-
+-    // Tandai seen_transactions sebagai consumed
+-    db.prepare(
+-      "UPDATE seen_transactions SET consumed_by = ? WHERE provider = ? AND txid = ?"
+-    ).run(order.id, provider, tx.txid);
+-
+-    console.log(`[poll] Order ${order.id} LUNAS via ${provider} (${tx.txid})`);
++  if (!config.mockEnabled || provider !== "mock" || !tx || !isOrderId(tx.orderId) ||
++      !Number.isSafeInteger(tx.userId) || tx.userId <= 0 || !Number.isSafeInteger(tx.amount) || tx.amount <= 0 ||
++      typeof tx.txid !== "string" || !tx.txid || tx.txid.length > 200 ||
++      !Number.isSafeInteger(tx.time) || tx.time > now) return false;
++  db.exec("BEGIN IMMEDIATE");
++  try {
++    const order = db.prepare(`SELECT id FROM orders WHERE id = ? AND user_id = ? AND provider = 'mock'
++      AND amount = ? AND status = 'pending' AND expires_at > ? AND created_at <= ? AND expires_at > ?`)
++      .get(tx.orderId, tx.userId, tx.amount, now, tx.time, tx.time);
++    if (!order || db.prepare("SELECT 1 FROM seen_transactions WHERE provider = ? AND txid = ?").get(provider, tx.txid)) {
++      db.exec("ROLLBACK");
++      return false;
++    }
++    db.prepare(`INSERT INTO seen_transactions(provider,txid,account_id,amount,tx_time,seen_at,consumed_by)
++      VALUES(?,?,NULL,?,?,?,?)`).run(provider, tx.txid, tx.amount, tx.time, now, order.id);
++    db.prepare("UPDATE orders SET status='paid', claimed_txid=?, claimed_at=?, updated_at=? WHERE id=? AND status='pending'")
++      .run(tx.txid, now, now, order.id);
++    db.exec("COMMIT");
++    return true;
++  } catch (error) {
++    db.exec("ROLLBACK");
++    throw error;
+   }
+ }
+ 
+--- /root/paygate-backups/20260907T124424Z/views/layout.ejs
++++ /root/paygate/views/layout.ejs
+@@ -5,21 +5,21 @@
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta name="robots" content="noindex,nofollow">
+   <title><%= title ? title + ' — ' : '' %>PayGate</title>
+-  <link rel="preconnect" href="https://fonts.googleapis.com">
+-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+-  <link rel="stylesheet" href="/static/css/app.css">
++  <link rel="stylesheet" href="/static/css/app.css?v=demo1">
+   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234f46e5'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>₽</text></svg>">
++  <script src="/static/js/app.js?v=demo1" defer></script>
++  <script src="/static/js/pages.js?v=demo1" defer></script>
+ </head>
+-<body>
++<body data-page="<%= active %>">
+   <%- include('partials/sidebar') %>
+-  <div class="main">
++  <main class="main">
++    <div class="demo-banner" role="note">DEMO — tidak menerima uang sungguhan. Hanya provider Mock yang aktif.</div>
+     <div class="topbar">
+-      <button class="burger" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Menu">☰</button>
++      <button class="burger" data-action="toggle-menu" aria-expanded="false" aria-controls="sidebar" aria-label="Menu">☰</button>
+       <div class="page-icon" id="pageIcon"></div>
+       <div class="topbar-title"><%= title || 'PayGate' %></div>
+       <div class="topbar-right">
+-        <button class="icon-btn" onclick="PayGate.toast('PayGate v1.0 — self-hosted payment gateway','info')" title="Info" aria-label="Info">
++        <button class="icon-btn" data-action="info" title="Info" aria-label="Info">
+           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+         </button>
+         <a href="/settings" class="icon-btn" title="Settings"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+@@ -28,21 +28,7 @@
+     <div class="content">
+       <%- body %>
+     </div>
+-  </div>
+-  <script src="/static/js/app.js"></script>
+-  <script>
+-    // Tentukan ikon halaman dari active menu
+-    const active = "<%= typeof active !== 'undefined' ? active : '' %>";
+-    const icons = {
+-      dashboard: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>',
+-      orders: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/></svg>',
+-      accounts: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>',
+-      apikeys: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>',
+-      transactions: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-5M3 4v5h5M21 3l-7.5 7.5M3 21l7.5-7.5M12 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/></svg>',
+-      settings: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
+-    };
+-    document.getElementById("pageIcon").innerHTML = icons[active] || icons.dashboard;
+-  </script>
++  </main>
+   <%- include('partials/footer') %>
+ </body>
+ </html>
+--- /root/paygate-backups/20260907T124424Z/views/login.ejs
++++ /root/paygate/views/login.ejs
+@@ -5,13 +5,11 @@
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta name="robots" content="noindex,nofollow">
+   <title>Login — PayGate</title>
+-  <link rel="preconnect" href="https://fonts.googleapis.com">
+-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+-  <link rel="stylesheet" href="/static/css/app.css">
++  <link rel="stylesheet" href="/static/css/app.css?v=demo1">
+   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234f46e5'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>₽</text></svg>">
+ </head>
+ <body>
++  <div class="demo-banner" role="note">DEMO — tidak menerima uang sungguhan. Hanya provider Mock yang aktif.</div>
+   <div class="auth-wrap">
+     <div class="auth-side">
+       <div class="inner">
+@@ -19,11 +17,11 @@
+           <div class="brand-logo">₽</div>
+           <span style="font-weight:800;font-size:20px;">PayGate</span>
+         </div>
+-        <h1 style="margin-top:34px;">Payment gateway pribadi.<br>Kendali penuh di tanganmu.</h1>
+-        <p>Terima pembayaran QRIS via ShopeePay &amp; GoPay, pantau transaksi real-time, dan kelola API key dari satu dashboard yang aman.</p>
++        <h1 style="margin-top:34px;">Payment gateway demo.<br>Uji alur tanpa uang sungguhan.</h1>
++        <p>Buat order Mock, simulasikan status pembayaran, dan kelola API key. Integrasi ShopeePay &amp; GoPay belum tersedia.</p>
+         <div class="auth-features">
+-          <div class="auth-feature"><div class="fi">🔐</div> Login aman — rate limit &amp; session terenkripsi</div>
+-          <div class="auth-feature"><div class="fi">⚡</div> Validasi akun real-time sebelum dipakai</div>
++          <div class="auth-feature"><div class="fi">🔐</div> Login dengan rate limit &amp; cookie sesi</div>
++          <div class="auth-feature"><div class="fi">⚡</div> Simulasi pembayaran khusus provider Mock</div>
+           <div class="auth-feature"><div class="fi">🔑</div> API key unik per user, bisa revoke</div>
+           <div class="auth-feature"><div class="fi">📱</div> Responsive di semua perangkat</div>
+         </div>
+@@ -49,7 +47,7 @@
+           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+           <div class="field">
+             <label for="username">Username</label>
+-            <input class="input" type="text" id="username" name="username" placeholder="admin" required autofocus autocomplete="username" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.-]+">
++            <input class="input" type="text" id="username" name="username" placeholder="admin" required autofocus autocomplete="username" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.\-]+">
+           </div>
+           <div class="field">
+             <label for="password">Password</label>
+--- /root/paygate-backups/20260907T124424Z/views/pages/accounts.ejs
++++ /root/paygate/views/pages/accounts.ejs
+@@ -2,7 +2,7 @@
+   <div class="flex justify-between items-center mb-16" style="flex-wrap:wrap;gap:12px;">
+     <div>
+       <h1 style="font-size:22px;font-weight:800;letter-spacing:-.02em;">Payment Accounts</h1>
+-      <p class="muted small mt-4">Hubungkan akun ShopeePay &amp; GoPay. <strong>Maksimal 1 akun per provider.</strong></p>
++      <p class="muted small mt-4">Integrasi ShopeePay &amp; GoPay belum tersedia. Kredensial provider tidak dikumpulkan.</p>
+     </div>
+   </div>
+ 
+@@ -38,173 +38,7 @@
+ 
+   <div class="alert alert-info mt-16">
+     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+-    <span>Kredensial kamu dienkripsi (AES-256-GCM) sebelum disimpan &amp; divalidasi real-time ke provider. Tidak ada fitur mass-add — tiap provider hanya bisa 1 akun.</span>
++    <span>Tidak ada koneksi pembayaran nyata. Gunakan <a href="/orders">order Mock</a> untuk simulasi tanpa uang sungguhan.</span>
+   </div>
+ </div>
+ 
+-<!-- Modal tambah akun -->
+-<div class="modal-backdrop" id="accModal">
+-  <div class="modal">
+-    <div class="modal-header">
+-      <h3 id="accModalTitle">Tambah Akun</h3>
+-      <button class="modal-close" onclick="closeModal()">&times;</button>
+-    </div>
+-    <div class="modal-body">
+-      <div id="accError" class="alert alert-error hidden"></div>
+-      <div class="field">
+-        <label>Provider</label>
+-        <div class="input" id="accProviderText" style="text-transform:capitalize;background:var(--surface-2);"></div>
+-      </div>
+-      <div class="field">
+-        <label>Label <span class="muted small">(opsional)</span></label>
+-        <input class="input" id="accLabel" maxlength="60" placeholder="Toko utama">
+-      </div>
+-      <div class="field">
+-        <label>Email</label>
+-        <input class="input" id="accEmail" type="email" placeholder="email@contoh.com" autocomplete="off">
+-      </div>
+-      <div class="field">
+-        <label>Nomor HP</label>
+-        <input class="input" id="accPhone" type="tel" placeholder="08xxxxxxxxxx" autocomplete="off">
+-      </div>
+-      <div class="field">
+-        <label>Password / Token</label>
+-        <input class="input" id="accPassword" type="password" placeholder="••••••••" autocomplete="new-password">
+-      </div>
+-      <div id="accValidating" class="hidden">
+-        <div class="alert alert-info">⏳ Memvalidasi kredensial ke server…</div>
+-      </div>
+-    </div>
+-    <div class="modal-footer">
+-      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+-      <button class="btn btn-primary" id="accSaveBtn" onclick="saveAccount()">
+-        <span id="accSaveText">Validasi &amp; Simpan</span>
+-      </button>
+-    </div>
+-  </div>
+-</div>
+-
+-<script>
+-let currentProvider = null;
+-let accounts = [];
+-
+-async function loadAccounts() {
+-  try {
+-    const d = await PayGate.api("/api/accounts");
+-    accounts = d.accounts;
+-    renderAccounts();
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+-
+-function renderAccounts() {
+-  const sp = accounts.find(a => a.provider === "shopeepay");
+-  const gp = accounts.find(a => a.provider === "gopay");
+-  renderCard("sp", sp, "shopeepay");
+-  renderCard("gp", gp, "gopay");
+-}
+-
+-function renderCard(prefix, acc, provider) {
+-  const badgeEl = document.getElementById(prefix + "Badge");
+-  const body = document.getElementById(prefix + "Body");
+-  const providerName = provider === "shopeepay" ? "ShopeePay" : "GoPay";
+-
+-  if (!acc) {
+-    badgeEl.innerHTML = '<span class="badge badge-neutral"><span class="dot"></span>Belum terhubung</span>';
+-    body.innerHTML = `
+-      <div class="empty-state" style="padding:16px;">
+-        <p class="muted small mb-16">Belum ada akun ${providerName} yang dihubungkan.</p>
+-        <button class="btn btn-outline" onclick="openModal('${provider}')">
+-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+-          Hubungkan ${providerName}
+-        </button>
+-      </div>`;
+-    return;
+-  }
+-
+-  const st = acc.status === "active" ? "Aktif" : "Error";
+-  const cls = acc.status === "active" ? "badge-success" : "badge-danger";
+-  badgeEl.innerHTML = `<span class="badge ${cls}"><span class="dot"></span>${st}</span>`;
+-  body.innerHTML = `
+-    <div class="flex items-center gap-10 mb-16">
+-      <div class="avatar" style="width:42px;height:42px;border-radius:12px;font-size:16px;">${PayGate.esc((acc.label || provider).charAt(0))}</div>
+-      <div>
+-        <div style="font-weight:700;">${PayGate.esc(acc.label || providerName)}</div>
+-        <div class="muted small">${providerName} Merchant</div>
+-      </div>
+-    </div>
+-    <div class="small muted mb-16">
+-      Terakhir validasi: ${acc.last_validated_at ? PayGate.fmtDate(acc.last_validated_at) : '-'}
+-      ${acc.last_error ? '<div class="alert alert-error mt-8">' + PayGate.esc(acc.last_error) + '</div>' : ''}
+-    </div>
+-    <div class="flex gap-8" style="flex-wrap:wrap;">
+-      <button class="btn btn-outline btn-sm" onclick="openModal('${provider}', true)">Ubah</button>
+-      <button class="btn btn-danger-ghost btn-sm" onclick="removeAccount('${provider}')">Putuskan</button>
+-    </div>`;
+-}
+-
+-function openModal(provider, isEdit) {
+-  currentProvider = provider;
+-  const isShopee = provider === "shopeepay";
+-  document.getElementById("accProviderText").textContent = isShopee ? "ShopeePay" : "GoPay";
+-  document.getElementById("accModalTitle").textContent = isEdit ? "Ubah Akun " + (isShopee ? "ShopeePay" : "GoPay") : "Hubungkan " + (isShopee ? "ShopeePay" : "GoPay");
+-  const acc = accounts.find(a => a.provider === provider);
+-  document.getElementById("accLabel").value = acc ? acc.label || "" : "";
+-  document.getElementById("accEmail").value = "";
+-  document.getElementById("accPhone").value = "";
+-  document.getElementById("accPassword").value = "";
+-  document.getElementById("accError").classList.add("hidden");
+-  document.getElementById("accModal").classList.add("open");
+-}
+-
+-function closeModal() {
+-  document.getElementById("accModal").classList.remove("open");
+-}
+-
+-async function saveAccount() {
+-  const body = {
+-    provider: currentProvider,
+-    label: document.getElementById("accLabel").value,
+-    email: document.getElementById("accEmail").value,
+-    phone: document.getElementById("accPhone").value,
+-    password: document.getElementById("accPassword").value
+-  };
+-  const errBox = document.getElementById("accError");
+-  const saveBtn = document.getElementById("accSaveBtn");
+-  const saveText = document.getElementById("accSaveText");
+-  const validating = document.getElementById("accValidating");
+-
+-  errBox.classList.add("hidden");
+-  validating.classList.remove("hidden");
+-  saveBtn.disabled = true;
+-  saveText.textContent = "Memvalidasi…";
+-
+-  try {
+-    // Validasi dulu (tanpa simpan)
+-    const test = await PayGate.api("/api/accounts/test", { method: "POST", body: JSON.stringify(body) });
+-    if (!test.ok) throw new Error(test.error || "Validasi gagal");
+-    // Simpan
+-    const res = await PayGate.api("/api/accounts", { method: "POST", body: JSON.stringify(body) });
+-    PayGate.toast(res.message || "Akun tersimpan!", "success");
+-    closeModal();
+-    loadAccounts();
+-  } catch (e) {
+-    errBox.textContent = "Validasi gagal: " + e.message;
+-    errBox.classList.remove("hidden");
+-  } finally {
+-    validating.classList.add("hidden");
+-    saveBtn.disabled = false;
+-    saveText.textContent = "Validasi & Simpan";
+-  }
+-}
+-
+-async function removeAccount(provider) {
+-  if (!confirm("Yakin ingin memutuskan akun " + provider + "? QRIS/order terkait tidak bisa diproses.")) return;
+-  try {
+-    await PayGate.api("/api/accounts/" + provider, { method: "DELETE" });
+-    PayGate.toast("Akun diputuskan.", "success");
+-    loadAccounts();
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+-
+-loadAccounts();
+-</script>
+--- /root/paygate-backups/20260907T124424Z/views/pages/apikeys.ejs
++++ /root/paygate/views/pages/apikeys.ejs
+@@ -2,9 +2,9 @@
+   <div class="flex justify-between items-center mb-16" style="flex-wrap:wrap;gap:12px;">
+     <div>
+       <h1 style="font-size:22px;font-weight:800;letter-spacing:-.02em;">API Keys</h1>
+-      <p class="muted small mt-4">Setiap request API wajib menyertakan API key yang valid.</p>
++      <p class="muted small mt-4">Integrasi API memakai key valid. Dashboard memakai cookie sesi &amp; CSRF.</p>
+     </div>
+-    <button class="btn btn-primary" onclick="openCreate()">
++    <button class="btn btn-primary" data-action="open-create">
+       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+       Generate Key
+     </button>
+@@ -26,108 +26,31 @@
+ </div>
+ 
+ <!-- Create modal -->
+-<div class="modal-backdrop" id="createModal">
+-  <div class="modal">
++<dialog class="modal" id="createModal" aria-labelledby="createModalTitle">
+     <div class="modal-header">
+-      <h3>Generate API Key</h3>
+-      <button class="modal-close" onclick="closeModal('createModal')">&times;</button>
++      <h3 id="createModalTitle">Generate API Key</h3>
++      <button class="modal-close" aria-label="Tutup dialog" type="button" data-action="close-modal" data-modal="createModal">&times;</button>
+     </div>
+     <div class="modal-body">
+       <div class="field">
+-        <label>Nama key</label>
+-        <input class="input" id="keyName" maxlength="60" placeholder="Bot production">
++        <label for="keyName">Nama key</label>
++        <input class="input" id="keyName" maxlength="60" required autofocus placeholder="Bot production">
+       </div>
+       <div id="newKeyBox" class="hidden">
+         <hr class="divider">
+         <div class="alert alert-success">✅ Key berhasil dibuat! <strong>Salin sekarang</strong> — tidak akan ditampilkan lagi.</div>
+         <div class="field">
+-          <label>API Key</label>
++          <div class="small mb-8">API Key</div>
+           <div class="key-box">
+             <span id="newKeyValue"></span>
+-            <button onclick="PayGate.copyText(document.getElementById('newKeyValue').textContent,'API key tersalin!')">📋</button>
++            <button data-action="copy" data-target="newKeyValue" aria-label="Salin API key">📋</button>
+           </div>
+         </div>
+       </div>
+-      <div id="keyError" class="alert alert-error hidden"></div>
++      <div id="keyError" class="alert alert-error hidden" role="alert"></div>
+     </div>
+     <div class="modal-footer">
+-      <button class="btn btn-ghost" onclick="closeModal('createModal')">Tutup</button>
+-      <button class="btn btn-primary" id="btnGen" onclick="createKey()">Generate</button>
++      <button class="btn btn-ghost" data-action="close-modal" data-modal="createModal">Tutup</button>
++      <button class="btn btn-primary" id="btnGen" data-action="create-key">Generate</button>
+     </div>
+-  </div>
+-</div>
+-
+-<script>
+-async function loadKeys() {
+-  try {
+-    const d = await PayGate.api("/api/api-keys");
+-    const tbody = document.getElementById("keyRows");
+-    if (!d.keys.length) {
+-      tbody.innerHTML = '<tr><td colspan="6" class="text-center muted">Belum ada API key.</td></tr>';
+-      return;
+-    }
+-    tbody.innerHTML = d.keys.map(k => `
+-      <tr>
+-        <td style="font-weight:600;">${PayGate.esc(k.name)}</td>
+-        <td><span class="mono small">${PayGate.esc(k.prefix)}</span></td>
+-        <td class="muted small">${k.last_used ? PayGate.fmtDate(k.last_used) : '-'}</td>
+-        <td class="muted small">${PayGate.fmtDate(k.created_at)}</td>
+-        <td>${k.revoked ? '<span class="badge badge-danger"><span class="dot"></span>Revoked</span>' : '<span class="badge badge-success"><span class="dot"></span>Aktif</span>'}</td>
+-        <td>
+-          <div class="actions">
+-            ${k.revoked ? '' : `<button class="btn btn-outline btn-sm" onclick="regenerateKey(${k.id})">Regenerate</button>
+-            <button class="btn btn-danger-ghost btn-sm" onclick="revokeKey(${k.id})">Revoke</button>`}
+-          </div>
+-        </td>
+-      </tr>`).join("");
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+-
+-function openCreate() {
+-  document.getElementById("newKeyBox").classList.add("hidden");
+-  document.getElementById("keyError").classList.add("hidden");
+-  document.getElementById("keyName").value = "";
+-  document.getElementById("createModal").classList.add("open");
+-}
+-
+-async function createKey() {
+-  const name = document.getElementById("keyName").value;
+-  const errBox = document.getElementById("keyError");
+-  const btn = document.getElementById("btnGen");
+-  errBox.classList.add("hidden");
+-  btn.disabled = true;
+-  try {
+-    const res = await PayGate.api("/api/api-keys", { method: "POST", body: JSON.stringify({ name }) });
+-    document.getElementById("newKeyValue").textContent = res.key;
+-    document.getElementById("newKeyBox").classList.remove("hidden");
+-    loadKeys();
+-  } catch (e) {
+-    errBox.textContent = e.message;
+-    errBox.classList.remove("hidden");
+-  } finally { btn.disabled = false; }
+-}
+-
+-async function revokeKey(id) {
+-  if (!confirm("Revoke API key ini? Semua request yang pakai key ini langsung ditolak.")) return;
+-  try {
+-    await PayGate.api("/api/api-keys/" + id + "/revoke", { method: "POST" });
+-    PayGate.toast("API key di-revoke.", "success");
+-    loadKeys();
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+-
+-async function regenerateKey(id) {
+-  if (!confirm("Regenerate key ini? Key lama langsung mati & diganti baru.")) return;
+-  try {
+-    const res = await PayGate.api("/api/api-keys/" + id + "/regenerate", { method: "POST" });
+-    document.getElementById("newKeyValue").textContent = res.key;
+-    document.getElementById("newKeyBox").classList.remove("hidden");
+-    document.getElementById("keyName").value = "";
+-    document.getElementById("createModal").classList.add("open");
+-    loadKeys();
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+-
+-function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+-loadKeys();
+-</script>
++</dialog>
+--- /root/paygate-backups/20260907T124424Z/views/pages/dashboard.ejs
++++ /root/paygate/views/pages/dashboard.ejs
+@@ -18,13 +18,13 @@
+     <div class="stat"><div class="skeleton" style="width:100%;height:90px;"></div></div>
+   </div>
+ 
+-  <div class="grid" style="grid-template-columns: 1.6fr 1fr;">
++  <div class="grid dashboard-grid">
+     <!-- Recent orders -->
+     <div class="card">
+       <div class="card-header">
+         <div>
+           <h3>Order Terbaru</h3>
+-          <div class="desc">Transaksi QRIS terakhir</div>
++          <div class="desc">Order demo terakhir</div>
+         </div>
+         <a href="/orders" class="btn btn-ghost btn-sm" style="margin-left:auto;">Lihat semua</a>
+       </div>
+@@ -38,7 +38,7 @@
+ 
+     <!-- Status akun -->
+     <div class="card">
+-      <div class="card-header"><div><h3>Payment Accounts</h3><div class="desc">Status koneksi</div></div></div>
++      <div class="card-header"><div><h3>Payment Accounts</h3><div class="desc">Ketersediaan integrasi</div></div></div>
+       <div class="card-pad" id="accountStatus">
+         <div class="skeleton" style="height:70px;margin-bottom:10px;"></div>
+         <div class="skeleton" style="height:70px;"></div>
+@@ -47,75 +47,4 @@
+   </div>
+ </div>
+ 
+-<script>
+-(async function () {
+-  try {
+-    const d = await PayGate.api("/api/dashboard/summary");
+-    const s = d.stats;
+ 
+-    const statCards = document.getElementById("statCards");
+-    statCards.innerHTML = [
+-      card("Pendapatan Lunas", PayGate.fmtRupiah(s.revenue_paid), "Total yang sudah dibayar", "c-success", svgMoney),
+-      card("Order Pending", s.orders_pending, "Menunggu pembayaran", "c-warning", svgClock),
+-      card("Order Selesai", s.orders_paid + " / " + s.orders_total, "Dari semua order", "c-info", svgCheck),
+-      card("Aktif", (s.accounts || 0) + " akun · " + (s.api_keys || 0) + " key", "Payment account & API key", "c-soft", svgKey)
+-    ].join("");
+-
+-    // Recent orders
+-    const tbody = document.getElementById("recentOrders");
+-    if (!d.recentOrders.length) {
+-      tbody.innerHTML = '<tr><td colspan="4" class="text-center muted">Belum ada order.</td></tr>';
+-    } else {
+-      tbody.innerHTML = d.recentOrders.map(o => `
+-        <tr>
+-          <td class="mono">${PayGate.esc(o.id)}</td>
+-          <td style="font-weight:700;">${PayGate.fmtRupiah(o.amount)}</td>
+-          <td>${badge(o.is_expired ? "expired" : o.status)}</td>
+-          <td class="muted small">${PayGate.esc(o.created_at_label)}</td>
+-        </tr>`).join("");
+-    }
+-
+-    // Accounts
+-    const acc = await PayGate.api("/api/accounts");
+-    const box = document.getElementById("accountStatus");
+-    if (!acc.accounts.length) {
+-      box.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="es-icon">💳</div><p>Belum ada akun payment.<br><a href="/accounts">Tambahkan sekarang</a></p></div>';
+-    } else {
+-      box.innerHTML = acc.accounts.map(a => `
+-        <div class="flex justify-between items-center mb-8" style="padding:10px;border:1px solid var(--border);border-radius:10px;">
+-          <div class="flex items-center gap-10">
+-            <div class="stat-icon c-${a.status === 'active' ? 'success' : 'danger'}" style="width:34px;height:34px;border-radius:9px;">
+-              ${a.provider === 'shopeepay' ? '🛒' : '🟢'}
+-            </div>
+-            <div>
+-              <div style="font-weight:600;font-size:13.5px;text-transform:capitalize;">${PayGate.esc(a.provider)}</div>
+-              <div class="muted small">${PayGate.esc(a.label || '')}</div>
+-            </div>
+-          </div>
+-          ${badge(a.status === 'active' ? 'active' : 'error')}
+-        </div>`).join("");
+-    }
+-  } catch (e) {
+-    PayGate.toast(e.message, "error");
+-  }
+-})();
+-
+-function card(label, value, sub, color, icon) {
+-  return `<div class="stat fade-up">
+-    <div class="stat-icon ${color}">${icon}</div>
+-    <div><div class="stat-label">${label}</div><div class="stat-value">${value}</div><div class="stat-sub">${sub}</div></div>
+-  </div>`;
+-}
+-function badge(status) {
+-  const map = {
+-    pending: ['badge-warning','Menunggu'], paid: ['badge-success','Lunas'], expired: ['badge-danger','Kadaluarsa'],
+-    active: ['badge-success','Aktif'], error: ['badge-danger','Error'], failed: ['badge-danger','Gagal']
+-  };
+-  const [cls,label] = map[status] || ['badge-neutral', status];
+-  return `<span class="badge ${cls}"><span class="dot"></span>${label}</span>`;
+-}
+-const svgMoney = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>';
+-const svgClock = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+-const svgCheck = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>';
+-const svgKey = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>';
+-</script>
+--- /root/paygate-backups/20260907T124424Z/views/pages/orders.ejs
++++ /root/paygate/views/pages/orders.ejs
+@@ -2,9 +2,9 @@
+   <div class="flex justify-between items-center mb-16" style="flex-wrap:wrap;gap:12px;">
+     <div>
+       <h1 style="font-size:22px;font-weight:800;letter-spacing:-.02em;">Orders</h1>
+-      <p class="muted small mt-4">Buat &amp; pantau order pembayaran QRIS.</p>
++      <p class="muted small mt-4">Buat &amp; pantau order Mock. QR demo bukan QRIS pembayaran.</p>
+     </div>
+-    <button class="btn btn-primary" onclick="openCreate()">
++    <button class="btn btn-primary" data-action="open-create">
+       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+       Buat Order
+     </button>
+@@ -21,175 +21,49 @@
+ </div>
+ 
+ <!-- Create Order Modal -->
+-<div class="modal-backdrop" id="createModal">
+-  <div class="modal">
++<dialog class="modal" id="createModal" aria-labelledby="createModalTitle">
+     <div class="modal-header">
+-      <h3>Buat Order Baru</h3>
+-      <button class="modal-close" onclick="closeModal('createModal')">&times;</button>
++      <h3 id="createModalTitle">Buat Order Demo</h3>
++      <button class="modal-close" aria-label="Tutup dialog" type="button" data-action="close-modal" data-modal="createModal">&times;</button>
+     </div>
+     <div class="modal-body">
+       <div class="field">
+-        <label>Nominal (IDR)</label>
+-        <input class="input" type="number" id="oAmount" min="1" placeholder="25000" inputmode="numeric">
++        <label for="oAmount">Nominal (IDR)</label>
++        <input class="input" type="number" id="oAmount" min="1" max="1000000000" step="1" required autofocus placeholder="25000" inputmode="numeric">
+       </div>
+       <div class="field">
+-        <label>Deskripsi <span class="muted small">(opsional)</span></label>
++        <label for="oDesc">Deskripsi <span class="muted small">(opsional)</span></label>
+         <input class="input" type="text" id="oDesc" maxlength="200" placeholder="Order #123 — Paket Bot Premium">
+       </div>
+       <div class="field">
+-        <label>Provider</label>
++        <label for="oProvider">Provider</label>
+         <select class="input" id="oProvider">
+           <option value="mock">Mock (testing)</option>
+-          <option value="shopeepay">ShopeePay</option>
+-          <option value="gopay">GoPay</option>
++          <option value="shopeepay" disabled>ShopeePay (belum tersedia)</option>
++          <option value="gopay" disabled>GoPay (belum tersedia)</option>
+         </select>
+       </div>
+-      <div id="createError" class="alert alert-error hidden"></div>
++      <div id="createError" class="alert alert-error hidden" role="alert"></div>
+     </div>
+     <div class="modal-footer">
+-      <button class="btn btn-ghost" onclick="closeModal('createModal')">Batal</button>
+-      <button class="btn btn-primary" id="btnCreate" onclick="createOrder()">Buat &amp; Generate QRIS</button>
++      <button class="btn btn-ghost" data-action="close-modal" data-modal="createModal">Batal</button>
++      <button class="btn btn-primary" id="btnCreate" data-action="create-order">Buat QR Demo</button>
+     </div>
+-  </div>
+-</div>
++</dialog>
+ 
+ <!-- Order Detail / QR Modal -->
+-<div class="modal-backdrop" id="detailModal">
+-  <div class="modal">
++<dialog class="modal" id="detailModal" aria-labelledby="detailModalTitle">
+     <div class="modal-header">
+-      <h3>Detail Order</h3>
+-      <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
++      <h3 id="detailModalTitle">Detail Order Demo</h3>
++      <button class="modal-close" aria-label="Tutup dialog" type="button" data-action="close-modal" data-modal="detailModal">&times;</button>
+     </div>
+     <div class="modal-body" id="detailBody"></div>
+     <div class="modal-footer">
+-      <button class="btn btn-outline" onclick="refreshOrder()">
++      <button class="btn btn-primary" id="btnSimulate" data-action="simulate-payment" hidden>Simulasi bayar</button>
++      <button class="btn btn-outline" data-action="refresh-order">
+         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+         Refresh Status
+       </button>
+-      <button class="btn btn-ghost" onclick="closeModal('detailModal')">Tutup</button>
++      <button class="btn btn-ghost" data-action="close-modal" data-modal="detailModal">Tutup</button>
+     </div>
+-  </div>
+-</div>
+-
+-<script>
+-let orders = [];
+-let currentDetailId = null;
+-
+-async function loadOrders() {
+-  try {
+-    const d = await PayGate.api("/api/orders");
+-    orders = d.orders;
+-    const tbody = document.getElementById("orderRows");
+-    if (!orders.length) {
+-      tbody.innerHTML = '<tr><td colspan="6" class="text-center muted">Belum ada order. Klik "Buat Order".</td></tr>';
+-      return;
+-    }
+-    const now = Date.now();
+-    tbody.innerHTML = orders.map(o => {
+-      const st = o.status === "pending" && o.expires_at < now ? "expired" : o.status;
+-      return `<tr>
+-        <td class="mono">${PayGate.esc(o.id)}</td>
+-        <td><span class="badge badge-neutral" style="text-transform:capitalize;">${PayGate.esc(o.provider)}</span></td>
+-        <td style="font-weight:700;">${PayGate.fmtRupiah(o.amount)}</td>
+-        <td>${badge(st)}</td>
+-        <td class="muted small">${PayGate.fmtDate(o.created_at)}</td>
+-        <td><div class="actions"><button class="btn btn-outline btn-sm" onclick="openDetail('${PayGate.esc(o.id)}')">Detail</button></div></td>
+-      </tr>`;
+-    }).join("");
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+-
+-async function createOrder() {
+-  const amount = document.getElementById("oAmount").value;
+-  const desc = document.getElementById("oDesc").value;
+-  const provider = document.getElementById("oProvider").value;
+-  const errBox = document.getElementById("createError");
+-  errBox.classList.add("hidden");
+-  document.getElementById("btnCreate").disabled = true;
+-
+-  try {
+-    const res = await PayGate.api("/api/orders/create", {
+-      method: "POST",
+-      body: JSON.stringify({ amount, description: desc, provider })
+-    });
+-    closeModal("createModal");
+-    PayGate.toast("Order dibuat!", "success");
+-    loadOrders();
+-    // langsung buka detail QRIS
+-    setTimeout(() => openDetail(res.order_id), 200);
+-  } catch (e) {
+-    errBox.textContent = e.message;
+-    errBox.classList.remove("hidden");
+-  } finally {
+-    document.getElementById("btnCreate").disabled = false;
+-  }
+-}
+-
+-async function openDetail(id) {
+-  currentDetailId = id;
+-  const box = document.getElementById("detailBody");
+-  box.innerHTML = '<div class="skeleton" style="height:280px;"></div>';
+-  document.getElementById("detailModal").classList.add("open");
+-  await refreshOrder();
+-}
+-
+-async function refreshOrder() {
+-  if (!currentDetailId) return;
+-  const box = document.getElementById("detailBody");
+-  try {
+-    const o = await PayGate.api("/api/orders/" + currentDetailId + "/status");
+-    const st = o.status === "pending" && o.expires_at < Date.now() ? "expired" : o.status;
+-    box.innerHTML = `
+-      <div class="flex justify-between items-center mb-16" style="flex-wrap:wrap;gap:8px;">
+-        <div><div class="small muted">ORDER ID</div><div class="mono" style="font-weight:600;">${PayGate.esc(o.order_id)}</div></div>
+-        <div>${badge(st)}</div>
+-      </div>
+-      <div class="flex justify-between items-center mb-16">
+-        <div><div class="small muted">Nominal</div><div style="font-size:24px;font-weight:800;">${PayGate.fmtRupiah(o.amount)}</div></div>
+-        <div><div class="small muted">Kadaluarsa</div><div class="small">${PayGate.fmtDate(o.expires_at)}</div></div>
+-      </div>
+-      <div class="text-center">
+-        ${o.qris_image ? '<div class="qr-box"><img src="' + o.qris_image + '" alt="QRIS" style="width:190px;height:190px;"></div>' : '<div class="empty-state"><div class="es-icon">📷</div>Tidak ada QR</div>'}
+-        <div class="small muted mt-8">Scan QRIS untuk membayar</div>
+-      </div>
+-      <hr class="divider">
+-      <div class="field">
+-        <label>QRIS Payload</label>
+-        <div class="key-box"><span id="qrisPayloadText">${PayGate.esc(o.qris_payload || "")}</span>
+-          <button onclick="PayGate.copyText(document.getElementById('qrisPayloadText').textContent,'Payload tersalin!')">📋</button>
+-        </div>
+-      </div>
+-      ${o.claimed ? '<div class="alert alert-success">✅ Pembayaran diterima (txid: <span class="mono">' + PayGate.esc(o.claimed_txid || "") + '</span>)</div>' : ''}
+-    `;
+-    // auto refresh kalau masih pending
+-    if (st === "pending") {
+-      clearTimeout(window._orderTimer);
+-      window._orderTimer = setTimeout(refreshOrder, 5000);
+-    } else {
+-      clearTimeout(window._orderTimer);
+-      loadOrders();
+-    }
+-  } catch (e) {
+-    box.innerHTML = '<div class="alert alert-error">' + PayGate.esc(e.message) + '</div>';
+-  }
+-}
+-
+-function openCreate() {
+-  document.getElementById("createModal").classList.add("open");
+-  setTimeout(() => document.getElementById("oAmount").focus(), 50);
+-}
+-function closeModal(id) {
+-  document.getElementById(id).classList.remove("open");
+-  clearTimeout(window._orderTimer);
+-}
+-function badge(status) {
+-  const map = {
+-    pending: ['badge-warning','Menunggu'], paid: ['badge-success','Lunas'], expired: ['badge-danger','Kadaluarsa'],
+-    active: ['badge-success','Aktif'], error: ['badge-danger','Error'], failed: ['badge-danger','Gagal'], cancelled: ['badge-neutral','Batal']
+-  };
+-  const [cls,label] = map[status] || ['badge-neutral', status];
+-  return `<span class="badge ${cls}"><span class="dot"></span>${label}</span>`;
+-}
+-
+-loadOrders();
+-</script>
++</dialog>
+--- /root/paygate-backups/20260907T124424Z/views/pages/settings.ejs
++++ /root/paygate/views/pages/settings.ejs
+@@ -4,35 +4,35 @@
+     <p class="muted small mt-4">Konfigurasi gateway &amp; keamanan akun.</p>
+   </div>
+ 
+-  <div class="grid" style="grid-template-columns: 1.4fr 1fr;">
++  <div class="grid settings-grid">
+     <!-- Konfigurasi -->
+     <div class="card">
+-      <div class="card-header"><div><h3>Konfigurasi Gateway</h3><div class="desc">Pengaturan polling &amp; toleransi</div></div></div>
++      <div class="card-header"><div><h3>Konfigurasi Gateway</h3><div class="desc">Konfigurasi runtime (baca saja)</div></div></div>
+       <div class="card-pad">
+         <div class="field">
+-          <label>Default Provider</label>
+-          <select class="input" id="setProvider">
++          <label for="setProvider">Default Provider</label>
++          <select class="input" id="setProvider" disabled>
+             <option value="mock">Mock (testing)</option>
+-            <option value="shopeepay">ShopeePay</option>
+-            <option value="gopay">GoPay</option>
++            <option value="shopeepay" disabled>ShopeePay (belum tersedia)</option>
++            <option value="gopay" disabled>GoPay (belum tersedia)</option>
+           </select>
+-          <div class="hint">Provider yang dipakai kalau order dibuat tanpa spesifik provider.</div>
++          <div class="hint">Provider default dari konfigurasi server. Adapter nyata belum tersedia.</div>
+         </div>
+         <div class="grid grid-2">
+           <div class="field">
+-            <label>Interval polling (ms)</label>
+-            <input class="input" id="setPoll" type="number" min="1000" max="60000" step="500">
++            <label for="setPoll">Interval polling (ms)</label>
++            <input class="input" id="setPoll" readonly type="number" min="1000" max="60000" step="500">
+           </div>
+           <div class="field">
+-            <label>Toleransi nominal (IDR)</label>
+-            <input class="input" id="setTolerance" type="number" min="0" max="10000">
++            <label for="setTolerance">Toleransi nominal (IDR)</label>
++            <input class="input" id="setTolerance" readonly type="number" min="0" max="10000">
+           </div>
+         </div>
+         <div class="field">
+-          <label>Order TTL (menit)</label>
+-          <input class="input" id="setTtl" type="number" min="1" max="1440">
++          <label for="setTtl">Order TTL (menit)</label>
++          <input class="input" id="setTtl" readonly type="number" min="1" max="1440">
+         </div>
+-        <button class="btn btn-primary" onclick="saveSettings()">Simpan Pengaturan</button>
++        <div class="alert alert-info">Pengeditan runtime lewat dashboard belum tersedia. Nilai dibaca dari konfigurasi server, bukan disimpan lewat halaman ini.</div>
+       </div>
+     </div>
+ 
+@@ -42,81 +42,29 @@
+         <div class="card-header"><div><h3>Ubah Password</h3><div class="desc">Ganti password login admin</div></div></div>
+         <div class="card-pad">
+           <div class="field">
+-            <label>Password saat ini</label>
++            <label for="pwCurrent">Password saat ini</label>
+             <input class="input" type="password" id="pwCurrent" autocomplete="current-password">
+           </div>
+           <div class="field">
+-            <label>Password baru</label>
++            <label for="pwNew">Password baru</label>
+             <input class="input" type="password" id="pwNew" autocomplete="new-password" minlength="8">
+           </div>
+           <div class="field">
+-            <label>Ulangi password baru</label>
++            <label for="pwConfirm">Ulangi password baru</label>
+             <input class="input" type="password" id="pwConfirm" autocomplete="new-password">
+           </div>
+-          <button class="btn btn-outline" onclick="changePassword()">Update Password</button>
++          <button class="btn btn-outline" data-action="change-password">Update Password</button>
+         </div>
+       </div>
+ 
+       <div class="card">
+         <div class="card-header"><div><h3>Sesi</h3><div class="desc">Keluar dari semua perangkat</div></div></div>
+         <div class="card-pad">
+-          <button class="btn btn-danger-ghost btn-block" onclick="logoutAll()">Logout Semua Perangkat</button>
++          <button class="btn btn-danger-ghost btn-block" data-action="logout-all">Logout Semua Perangkat</button>
+         </div>
+       </div>
+     </div>
+   </div>
+ </div>
+ 
+-<script>
+-async function loadSettings() {
+-  try {
+-    const s = await PayGate.api("/api/settings");
+-    document.getElementById("setProvider").value = s.default_provider || "mock";
+-    document.getElementById("setPoll").value = s.poll_interval_ms;
+-    document.getElementById("setTolerance").value = s.payment_tolerance;
+-    document.getElementById("setTtl").value = s.order_ttl_minutes;
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+ 
+-async function saveSettings() {
+-  try {
+-    await PayGate.api("/api/settings", {
+-      method: "POST",
+-      body: JSON.stringify({
+-        default_provider: document.getElementById("setProvider").value,
+-        poll_interval_ms: Number(document.getElementById("setPoll").value),
+-        payment_tolerance: Number(document.getElementById("setTolerance").value),
+-        order_ttl_minutes: Number(document.getElementById("setTtl").value)
+-      })
+-    });
+-    PayGate.toast("Pengaturan disimpan.", "success");
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+-
+-async function changePassword() {
+-  const cur = document.getElementById("pwCurrent").value;
+-  const nw = document.getElementById("pwNew").value;
+-  const cf = document.getElementById("pwConfirm").value;
+-  if (nw !== cf) return PayGate.toast("Password baru tidak cocok.", "error");
+-  try {
+-    await PayGate.api("/api/change-password", {
+-      method: "POST",
+-      body: JSON.stringify({ current_password: cur, new_password: nw, confirm_password: cf })
+-    });
+-    PayGate.toast("Password diganti! Sesi lain di-logout.", "success");
+-    document.getElementById("pwCurrent").value = "";
+-    document.getElementById("pwNew").value = "";
+-    document.getElementById("pwConfirm").value = "";
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+-
+-async function logoutAll() {
+-  if (!confirm("Logout dari semua perangkat (termasuk yang ini)? Kamu akan diarahkan ke login.")) return;
+-  try {
+-    await PayGate.api("/api/logout-all", { method: "POST" });
+-    window.location.href = "/login";
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+-
+-loadSettings();
+-</script>
+--- /root/paygate-backups/20260907T124424Z/views/pages/transactions.ejs
++++ /root/paygate/views/pages/transactions.ejs
+@@ -2,10 +2,10 @@
+   <div class="flex justify-between items-center mb-16" style="flex-wrap:wrap;gap:12px;">
+     <div>
+       <h1 style="font-size:22px;font-weight:800;letter-spacing:-.02em;">Transactions</h1>
+-      <p class="muted small mt-4">Mutasi transaksi masuk dari semua provider (untuk deteksi pembayaran).</p>
++      <p class="muted small mt-4">Catatan simulasi Mock. Bukan bukti transfer uang sungguhan.</p>
+     </div>
+     <div class="flex gap-8">
+-      <button class="btn btn-outline" onclick="pollNow()">
++      <button class="btn btn-outline" data-action="poll-now">
+         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+         Poll Sekarang
+       </button>
+@@ -22,35 +22,4 @@
+   </div>
+ </div>
+ 
+-<script>
+-async function loadTx() {
+-  try {
+-    const d = await PayGate.api("/api/transactions");
+-    const tbody = document.getElementById("txRows");
+-    if (!d.transactions.length) {
+-      tbody.innerHTML = '<tr><td colspan="5" class="text-center muted">Belum ada transaksi masuk. Order yang pending akan otomatis terdeteksi.</td></tr>';
+-      return;
+-    }
+-    tbody.innerHTML = d.transactions.map(t => `
+-      <tr>
+-        <td><span class="badge badge-neutral" style="text-transform:capitalize;">${PayGate.esc(t.provider)}</span></td>
+-        <td class="mono small">${PayGate.esc(t.txid)}</td>
+-        <td style="font-weight:700;">${PayGate.fmtRupiah(t.amount)}</td>
+-        <td class="muted small">${PayGate.fmtDate(t.tx_time || t.seen_at)}</td>
+-        <td>${t.consumed_by ? '<span class="badge badge-success"><span class="dot"></span>Diklaim</span>' : '<span class="badge badge-info"><span class="dot"></span>Baru</span>'}</td>
+-      </tr>`).join("");
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+ 
+-async function pollNow() {
+-  try {
+-    await PayGate.api("/api/dashboard/poll-now", { method: "POST" });
+-    PayGate.toast("Polling dijalankan.", "success");
+-    loadTx();
+-    setTimeout(loadTx, 1500);
+-  } catch (e) { PayGate.toast(e.message, "error"); }
+-}
+-
+-loadTx();
+-setInterval(loadTx, 8000);
+-</script>
+--- /root/paygate-backups/20260907T124424Z/views/partials/footer.ejs
++++ /root/paygate/views/partials/footer.ejs
+@@ -1,8 +1 @@
+-<script>
+-  // Tutup sidebar otomatis di mobile pas klik link
+-  document.querySelectorAll('.sidebar .nav-item').forEach(function (a) {
+-    a.addEventListener('click', function () {
+-      if (window.innerWidth <= 768) document.querySelector('.sidebar').classList.remove('open');
+-    });
+-  });
+-</script>
++<!-- Shared behavior lives in /static/js/app.js. -->

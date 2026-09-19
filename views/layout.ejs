@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title><%= title ? title + ' — ' : '' %>PayGate</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=studio4n">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23059669'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>P</text></svg>">
+  <script src="/static/js/app.js?v=studio4n" defer></script>
+  <script src="/static/js/theme.js?v=studio4n" defer></script>
+  <script src="/static/js/pages.js?v=studio4n" defer></script>
+  <% if (active === 'console') { %><script src="/static/js/console.js?v=studio4n" defer></script><% } %>
+</head>
+<% const labOwner = config.labUnofficialEnabled && user && user.id === config.labUserId; %>
+<body data-page="<%= active %>" data-lab-owner="<%= labOwner %>">
+  <%- include('partials/sidebar') %>
+  <main class="main">
+    <div class="topbar">
+      <button class="burger" data-action="toggle-menu" aria-expanded="false" aria-controls="sidebar" aria-label="Menu">☰</button>
+      <div class="page-icon" id="pageIcon"></div>
+      <div class="topbar-title"><%= title || 'PayGate' %></div>
+      <div class="topbar-right">
+        <button class="icon-btn" data-action="toggle-theme" title="Ganti tema" aria-pressed="false" aria-label="Ganti tema terang/gelap">
+          <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="content">
+      <%- body %>
+    </div>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

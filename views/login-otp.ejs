@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Verifikasi 2FA — PayGate</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=studio4n">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23059669'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>P</text></svg>">
+  <script src="/static/js/theme.js?v=studio4n" defer></script>
+</head>
+<body>
+  <header class="auth-toolbar"><a href="/login">Masuk</a><button class="btn btn-ghost btn-sm" data-action="toggle-theme" aria-pressed="false" aria-label="Ganti tema terang/gelap">Tema</button></header>
+  <div class="auth-wrap">
+    <section class="auth-side" aria-hidden="true">
+      <div class="inner">
+        <div class="auth-logo-row"><div class="brand-logo" aria-hidden="true">P</div><span class="brand-name">PayGate</span></div>
+        <p class="auth-kicker">Verifikasi dua langkah</p>
+        <div class="page-heading"><h1>Kode 2FA dibutuhkan</h1></div>
+        <p>Buka aplikasi autentikator (Google Authenticator, dll) lalu masukkan kode 6 digit.</p>
+      </div>
+    </section>
+    <main class="auth-form-side">
+      <div class="auth-card">
+        <div class="auth-logo-row"><div class="brand-logo" aria-hidden="true">P</div><div><div class="brand-name">PayGate</div><div class="auth-note">Verifikasi dua langkah</div></div></div>
+        <p class="auth-kicker">Langkah kedua</p>
+        <h2>Masukkan kode 2FA</h2>
+        <p class="sub">Buka aplikasi autentikator di perangkatmu.</p>
+        <% if (error) { %>
+          <div class="alert alert-error"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span><%= error %></span></div>
+        <% } %>
+        <form method="POST" action="/login/otp<%= next && next !== '/' ? '?next=' + encodeURIComponent(next) : '' %>" autocomplete="off">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field"><label for="otpCode">Kode 6 digit</label><input class="input" type="text" inputmode="numeric" pattern="[0-9]{6}" id="otpCode" name="code" placeholder="000000" required autofocus autocomplete="one-time-code" maxlength="6"></div>
+          <button class="btn btn-primary btn-lg btn-block" type="submit">Verifikasi</button>
+        </form>
+        <p class="small muted text-center mt-16"><a href="/login">Gunakan akun lain</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# ===== SECRETS / DATA — JANGAN PERNAH COMMIT =====
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
+data/
+backups/
+*.pem
+*.key
+*.session
+
+# wallet / kredensial pribadi
+wallet.txt
+session*.json
+apikey*.txt
+*.cookie
+credentials*
+
+# logs & runtime
+*.log
+logs/
+tmp/
+.cache/
+
+# node
+node_modules/
+package-lock.json
+
+# python helper runtime
+__pycache__/
+*.pyc
+
+dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

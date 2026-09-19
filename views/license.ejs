@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Lisensi MIT — PayGate</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=studio4n">
+  <script src="/static/js/theme.js?v=studio4n" defer></script>
+</head>
+<body>
+  <header class="auth-toolbar"><a href="/login">PayGate</a><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-theme" aria-pressed="false" aria-label="Ganti tema terang/gelap">Tema</button></header>
+  <main class="legal-page license-page">
+    <header class="license-hero">
+      <div class="license-mark" aria-hidden="true">MIT</div>
+      <div class="page-heading"><div><p class="eyebrow">PayGate · Open source</p><h1>Lisensi MIT</h1><p class="page-description">Bebas digunakan dan dikembangkan.<br>Tetap sertakan pemberitahuan lisensi.</p></div></div>
+    </header>
+    <p class="license-intro">Ringkasan ini membantu membaca lisensi, bukan mengganti atau mengubah teks MIT asli di bawah. Lisensi source code tidak memberi izin mengakses API privat provider. Dependensi pihak ketiga tetap mengikuti lisensinya masing-masing.</p>
+    <div class="license-grid">
+      <section class="license-card" aria-labelledby="licensePermissions">
+        <p class="eyebrow">01 · Diizinkan</p>
+        <h2 id="licensePermissions">Izin penggunaan</h2>
+        <ul><li>Penggunaan pribadi dan komersial</li><li>Menyalin, mengubah, dan menggabungkan kode</li><li>Menerbitkan dan mendistribusikan</li><li>Mensublisensikan dan menjual salinan</li></ul>
+      </section>
+      <section class="license-card" aria-labelledby="licenseConditions">
+        <p class="eyebrow">02 · Wajib disertakan</p>
+        <h2 id="licenseConditions">Syarat distribusi</h2>
+        <p>Sertakan pemberitahuan hak cipta dan pemberitahuan izin MIT dalam semua salinan atau bagian substansial perangkat lunak.</p>
+      </section>
+      <section class="license-card" aria-labelledby="licenseLimitations">
+        <p class="eyebrow">03 · Tanpa jaminan</p>
+        <h2 id="licenseLimitations">Batasan tanggung jawab</h2>
+        <p>Perangkat lunak disediakan “AS IS”, tanpa jaminan apa pun. Teks MIT membatasi tanggung jawab pembuat dan pemegang hak cipta atas klaim, kerusakan, atau kewajiban lain terkait perangkat lunak.</p>
+      </section>
+    </div>
+    <details class="license-raw">
+      <summary>Baca teks asli MIT License</summary>
+      <pre id="licenseText"><%= licenseText %></pre>
+    </details>
+    <nav class="legal-links" aria-label="Navigasi lisensi"><a class="btn btn-outline" href="/license.txt" download="LICENSE.txt">Buka LICENSE.txt</a><a class="btn btn-ghost" href="/terms/details">Syarat Penggunaan</a></nav>
+  </main>
+</body>
+</html>
