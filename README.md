@@ -1,6 +1,13 @@
 # paygate
 
-Self-hosted personal payment gateway and dynamic QRIS orchestrator. Runs on your own Linux hardware, bridges payments directly through personal ShopeePay and GoPay merchant sessions, and stores all transaction records in a local SQLite database without third-party aggregator middleman fees or external API locks.
+[![Node.js](https://img.shields.io/badge/node-18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
+[![Worker](https://img.shields.io/badge/worker-Playwright_Chromium-2EAD33?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev)
+[![Database](https://img.shields.io/badge/database-SQLite3-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://sqlite.org)
+[![Standard](https://img.shields.io/badge/standard-EMVCo_QRIS_2.0-orange?style=flat-square)](https://www.qris.id)
+[![Architecture](https://img.shields.io/badge/architecture-Local_First-6B46C1?style=flat-square)](#architecture)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+
+Self-hosted personal payment gateway and dynamic QRIS orchestrator. Runs on your own Linux hardware, bridges payments directly through personal ShopeePay and GoPay merchant sessions, and stores all transaction records in a local SQLite database without third-party aggregator middleman fees, legal entity locks (PT/CV), or external API dependencies.
 
 ---
 
