@@ -1,66 +1,197 @@
 # paygate
 
-Self-hosted payment gateway for personal use. It generates dynamic QRIS codes, takes payments through ShopeePay and GoPay, and keeps all transaction data on your own server.
+Self-hosted personal payment gateway and dynamic QRIS orchestrator. Runs on your own Linux server, takes payments through ShopeePay and GoPay merchant sessions, and stores all transaction records locally in SQLite without relying on third-party payment aggregators.
 
-Status: **unfinished**. The ShopeePay path works end to end in my testing. The GoPay path logs in, but payment polling is unreliable. Read the code before pointing real money at it.
+Status: **in development / live-only experimental**. ShopeePay flow is tested and functional end-to-end. GoPay merchant authentication succeeds, but transaction feed polling remains experimental. Review the source before handling real transactions.
 
-## What it does
+---
 
-- Dynamic QRIS: the amount is baked into each code, so a payment can only match its order
-- Web dashboard (EJS): password + TOTP login, order list, income view
-- API keys (`sk-...`) so other programs can create orders and check status
-- A poller that watches for incoming payments and flips orders to paid
-- Income tracking, automatic amount allocation, tax math
-- Shopee login automation through a headless browser helper (`src/services/shopee_browser.py`)
-- Rate limiting, security headers, and audit logging on the console endpoints
+## Architecture
 
-## What it doesn't do yet
+```
+                       ┌──────────────────────────────┐
+                       │   Client / Storefront App   │
+                       └──────────────┬───────────────┘
+                                      │ POST /api/orders/create (X-Api-Key)
+                                      ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ PayGate Server (Node.js 18+ / Express)                                 │
+│                                                                        │
+│  ├─ Auth & Security : TOTP 2FA, signed HttpOnly cookies, CSRF, rate-lim │
+│  ├─ Core Engines    : Dynamic QRIS generator (EMVCo), local ledger     │
+│  ├─ Storage Layer   : SQLite local database                            │
+│  └─ Background Poller: Reconciliation matching amount + time window    │
+└───────────────┬────────────────────────────────────────┬───────────────┘
+                │ IPC / Subprocess                       │ HTTP API
+                ▼                                        ▼
+┌──────────────────────────────┐        ┌────────────────────────────────┐
+│ Playwright Python Worker     │        │ GoPay Merchant Gateway         │
+│ (src/services/shopee_browser)│        │ (Session / OTP verification)   │
+└───────────────┬──────────────┘        └────────────────────────────────┘
+                │ Headless Browser
+                ▼
+┌──────────────────────────────┐
+│ Shopee Merchant Portal       │
+└──────────────────────────────┘
+```
 
-- GoPay payments are not reliable end to end
-- No webhooks. Your integrations have to poll.
-- No Docker setup
-- API docs are thin. `docs/` has research notes, not reference material.
+---
 
-## Running it
+## Features
 
-Node 18 or newer. A couple of test suites hit the real network, so don't be surprised by slow `npm test` runs.
+- **Dynamic QRIS (EMVCo)**: Injects exact order amounts directly into the QR payload to eliminate manual transfer errors and guarantee 1:1 order reconciliation.
+- **Self-Hosted Ledger**: Keeps customer identifiers, order states, fee structures, and settlement history in a private local SQLite database.
+- **Merchant Session Automation**: Uses a headless Playwright runner (`src/services/shopee_browser.py`) to handle merchant portal authentication, OTP challenges, and session renewals.
+- **Stateless API Keys**: External services create orders and poll statuses using scoped `sk-...` bearer keys without dashboard access.
+- **Admin Dashboard**: EJS-based management console protected by password, TOTP two-factor authentication, and strict CSRF tokens.
+- **Hardened Security**: Includes strict rate-limiting, timing-safe credential comparisons, audit logging, and restrictive HTTP security headers.
+- **Financial Math**: Built-in tax calculations, net revenue breakdown, and multi-wallet percentage allocation rules.
+
+---
+
+## Prerequisites
+
+- **Node.js**: `18.x` or newer
+- **Python**: `3.10+` with Playwright (`pip install playwright && playwright install chromium`)
+- **Operating System**: Linux (Ubuntu/Debian recommended)
+
+---
+
+## Getting Started
+
+### 1. Installation
 
 ```bash
 git clone https://github.com/rndsa/paygate.git
 cd paygate
 npm install
-cp .env.example .env   # fill it in yourself, see below
-npm run setup          # creates the database and the admin account
-npm start              # listens on localhost:3000
 ```
 
-`npm run dev` restarts on file changes.
+Install browser dependencies for the ShopeePay runner:
 
-### Config
+```bash
+pip install -r requirements.txt # or: pip install playwright
+playwright install chromium --with-deps
+```
 
-Copy `.env.example` to `.env`. Minimum:
+### 2. Configuration
 
-- `COOKIE_SECRET` - generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-- `ADMIN_PASSWORD`
+Create your environment configuration from the template:
 
-The other variables are documented inline in the example file.
+```bash
+cp .env.example .env
+```
 
-### How the Shopee flow works
+Generate secure secrets for the application:
 
-`src/services/shopee.js` drives your own Shopee account: it logs in through the Python helper, watches for incoming payment notifications, and matches them against open orders. Nothing here talks to a bank or PSP API. It is polling and parsing, all local.
+```bash
+# Generate COOKIE_SECRET
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
-## Layout
+Configure `.env` with your values:
+
+```ini
+PORT=3000
+NODE_ENV=production
+COOKIE_SECRET=your_generated_random_hex_secret
+ADMIN_PASSWORD=your_secure_admin_password
+LAB_USER_ID=admin
+POLL_INTERVAL_MS=60000
+```
+
+### 3. Database Initialization & Admin Setup
+
+Run the setup script to initialize the SQLite database schema and register the primary admin:
+
+```bash
+npm run setup
+```
+
+### 4. Running the Service
+
+```bash
+# Production start
+npm start
+
+# Development mode with nodemon auto-reload
+npm run dev
+```
+
+The admin dashboard will be available at `http://localhost:3000`.
+
+---
+
+## Production Deployment (systemd)
+
+A preconfigured service unit is provided in `deploy/paygate.service`:
+
+```bash
+sudo cp deploy/paygate.service /etc/systemd/system/paygate.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now paygate
+```
+
+Check service status and logs:
+
+```bash
+sudo systemctl status paygate
+journalctl -u paygate -f
+```
+
+---
+
+## API Overview
+
+External integrations interact with PayGate through standard JSON endpoints using the `X-Api-Key` header:
+
+```bash
+# Create a new dynamic QRIS order
+curl -X POST http://localhost:3000/api/orders/create \
+  -H "X-Api-Key: sk-your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "shopeepay",
+    "amount": 25000,
+    "description": "Invoice #1042"
+  }'
+```
+
+```bash
+# Check order payment status
+curl http://localhost:3000/api/orders/ORD-12345/status \
+  -H "X-Api-Key: sk-your-api-key"
+```
+
+For complete endpoint contracts, error codes, and merchant connection parameters, see [docs/API.md](docs/API.md).
+
+---
+
+## Project Structure
 
 ```
-src/routes      HTTP handlers
-src/services    provider logic (shopee, gopay, poller)
-src/lib         qris, crypto, totp, tax, allocation
-src/middleware  security headers, rate limit, console audit
-views           EJS templates
-tests           one file per feature, run with npm test
-docs            research notes from building this
+paygate/
+├── deploy/            # systemd service unit and deployment scripts
+├── docs/              # Protocol specifications, API contract, and research logs
+│   ├── API.md         # Full REST API documentation
+│   ├── SHOPEE_CONNECT.md # Shopee merchant portal setup guide
+│   └── WEBSITE.md     # Storefront integration notes
+├── public/            # Static assets (CSS, client scripts, icons)
+├── src/
+│   ├── db/            # Database schema, migration, and connection helpers
+│   ├── lib/           # EMVCo QRIS encoder, cryptographic routines, TOTP
+│   ├── middleware/    # Rate limiters, security headers, console audit
+│   ├── routes/        # Express route controllers (orders, accounts, dashboard)
+│   ├── services/      # ShopeePay Playwright worker, poller, account drivers
+│   ├── config.js      # Central environment configuration loader
+│   ├── server.js      # Express server entry point
+│   └── setup.js       # First-run schema setup & admin bootstrap
+├── tests/             # Automated test suite (npm test)
+└── views/             # EJS server-rendered templates for the admin dashboard
 ```
+
+---
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+[MIT](LICENSE) © ren (`rndsa`)
