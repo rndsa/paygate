@@ -292,4 +292,4 @@ paygate/
 
 ## License
 
-[MIT](LICENSE) © ren (`rndsa`)
+[MIT](LICENSE) © ren

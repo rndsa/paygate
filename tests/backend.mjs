@@ -154,7 +154,7 @@ try {
       const decoded=r.data.match(/<pre id="licenseText">([\s\S]*?)<\/pre>/)?.[1]
         .replace(/&#34;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
       assert.equal(decoded,raw.data,'HTML details contains complete unmodified MIT licence');
-      assert.match(raw.data,/MIT License/);assert.match(raw.data,/Copyright \(c\) 2026 Carry/);assert.match(raw.data,/WITHOUT WARRANTY OF ANY KIND/);
+      assert.match(raw.data,/MIT License/);assert.match(raw.data,/Copyright \(c\) 2026 ren/);assert.match(raw.data,/WITHOUT WARRANTY OF ANY KIND/);
       for (const route of ['/license/.env','/license.txt/.env']) assert.equal((await request(route,{session:false})).status,302);
       const faq=await request('/terms/details',{session:false});
       assert.equal(faq.status,200);assert.equal((faq.data.match(/class="terms-faq-item"/g)||[]).length,8);
