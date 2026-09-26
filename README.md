@@ -11,6 +11,32 @@ Self-hosted personal payment gateway and dynamic QRIS orchestrator. Runs on your
 
 ---
 
+## 🎯 Untuk Apa Project Ini Berjalan?
+
+Payment gateway komersial konvensional (seperti Midtrans, Xendit, Tripay, atau Duitku) memiliki hambatan signifikan bagi pengembang independen, proyek micro-SaaS, dan pelaku usaha personal:
+* **Persyaratan Legalitas & KYC Ketat**: Mewajibkan entitas badan usaha resmi (PT/CV), verifikasi rekening bisnis perusahaan, dan verifikasi dokumen yang memakan waktu berhari-hari.
+* **Potongan Biaya Transaksi (MDR Fee)**: Biaya potongan sebesar 0.7% s.d. 1.5% + PPN per transaksi yang memotong margin keuntungan layanan mikro.
+* **Siklus Settlement Bertingkat (Holding Dana)**: Dana transaksi ditahan selama T+1 hingga T+3 hari kerja sebelum bisa ditarik ke rekening utama, serta dikenakan biaya transfer antar bank.
+
+**PayGate** dibangun dengan filosofi **Local-First & Direct-to-Merchant**:
+1. **Bypass Biaya Aggregator Pihak Ketiga**: Pembayaran via QRIS langsung masuk 100% secara real-time ke saldo merchant ShopeePay / GoPay Anda sendiri tanpa potongan komisi per transaksi.
+2. **Dynamic QRIS Generator (EMVCo 2.0)**: Mengubah QRIS statis merchant personal menjadi kode QR dinamis dengan nominal otomatis menggunakan format EMVCo Tag 54, mencegah salah transfer atau salah input nominal oleh pembeli.
+3. **Penyimpanan Lokal (Zero External Database)**: Semua rekonsiliasi data transaksi, log order, dan kunci API tersimpan aman di SQLite lokal server tanpa ketergantungan DB cloud eksternal.
+4. **Otomasi Ledger via Headless Browser**: Menggunakan Playwright Chromium terisolasi di background untuk membaca mutasi saldo secara instan dan memicu webhook konfirmasi pembayaran dalam hitungan detik.
+
+---
+
+## ⚖️ Kelebihan & Kekurangan
+
+| Kategori | Kelebihan (Pros) | Kekurangan (Cons) |
+|---|---|---|
+| **Finansial & Biaya** | **0% MDR Fee Aggregator**: Transaksi masuk utuh 100% ke saldo merchant Anda tanpa potongan fee pihak ketiga. Dana langsung cair seketika (*instant settlement*). | **Bukan PSP Berlisensi**: Beroperasi menggunakan otomasi portal merchant mandiri, bukan API formal perbankan / Payment Service Provider terlisensi Bank Indonesia. |
+| **Persyaratan Akun** | **Tanpa Badan Hukum PT/CV**: Cukup menggunakan akun merchant personal ShopeePay atau GoBiz yang telah aktif dan terverifikasi standar. | **Manajemen Sesi Merchant**: Sesi login browser merchant membutuhkan pembaruan berkala jika session cookie kedaluwarsa atau diminta OTP relogin. |
+| **Privasi & Arsitektur** | **100% Self-Hosted & Local-First**: Semua data transaksi, kunci enkripsi, dan rekonsiliasi tersimpan di server Anda sendiri via SQLite3 terenkripsi. | **Kebutuhan Resource Server**: Menjalankan engine headless Chromium (Playwright) membutuhkan alokasi RAM minimal 512MB–1GB pada VPS. |
+| **Integrasi Klien** | **Universal REST API & Webhook**: Menyediakan REST API sederhana untuk pembuatan tagihan QRIS serta webhook callback otomatis ke aplikasi storefront Anda. | **Tergantung Struktur UI Merchant**: Jika pihak Shopee/GoPay merombak total struktur HTML dashboard merchant mereka, skrip selektor scraping perlu disesuaikan. |
+
+---
+
 ## Status & Provider Support
 
 | Provider | Merchant Authentication | Payment Detection | Real-time Settlement | Maturity |
