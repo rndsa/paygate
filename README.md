@@ -11,6 +11,16 @@ Self-hosted personal payment gateway and dynamic QRIS orchestrator. Runs on your
 
 ---
 
+## 🌐 Web Preview
+
+### 🖥️ Merchant Dashboard & Order Reconciliation (Light Mode)
+![PayGate Web Dashboard](assets/preview-dashboard.png)
+
+### 🌙 Merchant Dashboard (Dark Mode)
+![PayGate Web Dashboard Dark](assets/preview-dashboard-dark.png)
+
+---
+
 ## 🎯 Untuk Apa Project Ini Berjalan?
 
 Payment gateway komersial konvensional (seperti Midtrans, Xendit, Tripay, atau Duitku) memiliki hambatan signifikan bagi pengembang independen, proyek micro-SaaS, dan pelaku usaha personal:
