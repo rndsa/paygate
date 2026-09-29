@@ -58,6 +58,12 @@ router.get("/2fa", (req, res) => {
 
 // Generate a fresh secret. Not active until a valid code is confirmed.
 router.post("/2fa/setup", asyncRoute(async (req, res) => {
+  const row = db.prepare("SELECT totp_enabled FROM users WHERE id = ?").get(req.user.id);
+  if (row?.totp_enabled) {
+    return res.status(409).json({
+      error: "2FA sedang aktif. Nonaktifkan dulu dengan password di /2fa/disable."
+    });
+  }
   const secret = generateSecret();
   db.prepare("UPDATE users SET totp_secret = ?, totp_enabled = 0, updated_at = ? WHERE id = ?")
     .run(secret, Date.now(), req.user.id);

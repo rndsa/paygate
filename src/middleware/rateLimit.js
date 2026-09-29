@@ -7,6 +7,26 @@ import { config } from "../config.js";
  */
 
 const buckets = new Map(); // key -> { hits: [], blockedUntil }
+const MAX_MAP_KEYS = 10000;
+
+function pruneMap(map, max = MAX_MAP_KEYS) {
+  if (map.size <= max) return;
+  const now = Date.now();
+  for (const [k, v] of map.entries()) {
+    if (v.blockedUntil && v.blockedUntil < now && (!v.hits || v.hits.length === 0)) {
+      map.delete(k);
+    } else if (v.lockedUntil && v.lockedUntil < now) {
+      map.delete(k);
+    }
+    if (map.size <= max * 0.8) break;
+  }
+  if (map.size > max) {
+    for (const k of map.keys()) {
+      map.delete(k);
+      if (map.size <= max * 0.8) break;
+    }
+  }
+}
 
 function keyFor(ip, bucket) {
   return `${bucket}:${ip || "unknown"}`;
@@ -20,6 +40,7 @@ export function rateLimit({ windowMs = config.rateLimitWindowMs, max = config.ra
     let rec = buckets.get(key);
 
     if (!rec) {
+      pruneMap(buckets);
       rec = { hits: [], blockedUntil: 0 };
       buckets.set(key, rec);
     }
@@ -64,6 +85,7 @@ export function recordLoginFailure(ip, username) {
       r.lockedUntil = now + config.loginLockoutMs;
       r.count = 0;
     }
+    pruneMap(loginAttempts);
     loginAttempts.set(k, r);
   }
 }
