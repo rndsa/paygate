@@ -326,6 +326,22 @@ paygate/
 
 ---
 
+## 🛡️ Security Hardening & Audit Changelog
+
+PayGate telah diaudit dan diperkuat terhadap potensi eksploitasi sesi dan memory bloat:
+
+1. **2FA Setup Overwrite Protection**:
+   - Endpoint `POST /settings/2fa/setup` memverifikasi status TOTP pengguna sebelum membuat *secret* baru.
+   - Jika 2FA sudah aktif, permintaan ditolak dengan status HTTP 409 Conflict; pengguna diwajibkan melakukan re-autentikasi password melalui `/settings/2fa/disable`, mencegah pengambilalihan akun atau penonaktifan 2FA secara sepihak via *stolen session cookie*.
+2. **Bounded In-Memory Rate Limiter (Anti-DoS / Memory Leak)**:
+   - Map penampung tracking request (`buckets`) dan kegagalan login (`loginAttempts`) dibatasi kapasitasnya dengan pagu maksimal 10.000 kunci (`MAX_MAP_KEYS`).
+   - Menerapkan mekanisme pembersihan berkala (*auto-pruning*) berbasis TTL kedaluwarsa dan pemangkasan FIFO 20% kapasitas saat mencapai batas maksimal, mencegah kebocoran memori akibat *random IP spraying*.
+3. **Fail-Closed Isolation & Provable Cooldown**:
+   - Seluruh integrasi provider yang dinonaktifkan langsung memutus eksekusi tanpa membuat antrean order palsu (*fail-closed*).
+   - Pengalihan login, validasi payload QRIS EMVCo, serta penanganan error internal telah disterilkan dari potensi kebocoran kredensial atau stack trace mentah ke klien.
+
+---
+
 ## License
 
 [MIT](LICENSE) © ren
